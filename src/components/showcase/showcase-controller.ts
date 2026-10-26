@@ -1,4 +1,5 @@
 import { scrollBehavior } from "@/scripts/motion";
+import { PaneHistory } from "./pane-history";
 
 // <nsc-showcase>: the behaviour of the shell, as a custom element wrapped
 // around its markup. It is where ShowcaseLinear's React state went — not into
@@ -17,9 +18,12 @@ import { scrollBehavior } from "@/scripts/motion";
 //   detail     (lesson 07) [data-open] buttons clone that project's <template>
 //              into the detail pane and slide the track over; Back, Escape and
 //              the rail button slide it back
+//   history    (lesson 08) opening pushes a history entry and closing goes
+//              back past it (pane-history.ts), so the browser's back button
+//              closes the pane too. The pane follows the history: it closes on
+//              `popstate`, whichever way the history was moved.
 //
-// Lesson 08 puts the detail pane into the browser's history; lesson 09 adds the
-// scroll sequence, which is what will set `section` and `lit`.
+// Lesson 09 adds the scroll sequence, which is what will set `section` and `lit`.
 
 type State = {
   // A project is showing. Driven by open/close.
@@ -39,6 +43,7 @@ const BACK_ICON = `<svg class="back-arrow" viewBox="0 0 16 16" aria-hidden="true
 
 class Showcase extends HTMLElement {
   #wiring?: AbortController;
+  #history = new PaneHistory();
   #state: State = { isDetail: false, open: null, section: null, lit: false };
 
   // Elements render() writes to, looked up once.
@@ -80,6 +85,7 @@ class Showcase extends HTMLElement {
     window.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && this.#state.isDetail) this.close();
     }, { signal });
+    window.addEventListener("popstate", this.#onPopState, { signal });
 
     // Menu entries are section LABELS, matched back to the band that declared
     // one. scrollIntoView rather than a scrollTop sum, because which element
@@ -132,16 +138,26 @@ class Showcase extends HTMLElement {
     // an iframe that has been navigated inside, a carousel on its fifth shot.
     if (this.#state.open !== slug) this.#el.detailScroll.replaceChildren(template.content.cloneNode(true));
 
+    if (!this.#state.isDetail) this.#history.push(slug);
     this.#state.open = slug;
     this.#state.isDetail = true;
     this.#render();
   }
 
+  // Asks to close the pane. It does not close it here: it moves the history
+  // back past the pane's entry, and the `popstate` that follows closes it —
+  // the same path the browser's own back button takes, so there is only one.
   close() {
+    if (this.#state.isDetail) this.#history.back();
+  }
+
+  // The history has moved back past the pane's entry: the browser's back
+  // button, a swipe, or close() above.
+  #onPopState = () => {
     if (!this.#state.isDetail) return;
     this.#state.isDetail = false;
     this.#render();
-  }
+  };
 
   // Section labels in document order, read from the DOM rather than declared
   // twice. One rotated title per label goes into the rail, ahead of the span

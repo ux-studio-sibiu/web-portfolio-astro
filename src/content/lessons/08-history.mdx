@@ -1,0 +1,123 @@
+---
+number: 8
+title: History
+summary: Opening a project pushes a history entry, so the browser's back button closes the pane. Closing always goes back in one jump, even when the embedded site has added history entries of its own, via the Navigation API with a counting fallback.
+---
+
+After lesson 07 the pane opened and closed, but the browser didn't know: the back button (or a swipe
+back on a phone) left the site with a project open. This lesson ties the pane to the history, ported
+from `ShowcaseLinear` almost line for line, but now in a module of its own:
+`showcase/pane-history.ts`.
+
+## The two moves
+
+```ts
+// opening
+history.pushState({ project: slug }, "");   // one new entry, same URL
+
+// the browser's back button, or close()
+window.addEventListener("popstate", () => { /* close the pane */ });
+```
+
+- **`pushState`** adds an entry without loading anything or changing the URL. Lesson 13 is where the URL
+  starts to change (`?project=…`). The state object is only a marker for now.
+- **`popstate`** fires when the history moves to a different entry of *this* document: back, forward,
+  a swipe, or `history.go()`.
+
+The rule that keeps it simple: **the pane follows the history, never the other way round.** Back, Escape
+and the rail's arrow don't close the pane themselves. They call `close()`, which **moves the history**,
+and the `popstate` that follows closes the pane, exactly as the browser's own back button does. There's
+one way to close, so there's nothing to keep in sync.
+
+```ts
+close() {
+  if (this.#state.isDetail) this.#history.back();   // move the history…
+}
+#onPopState = () => {                                // …and close when it has moved
+  this.#state.isDetail = false;
+  this.#render();
+};
+```
+
+## Why `history.back()` isn't enough
+
+A page and **every iframe in it share one history** (the *joint session history*). If the embedded
+site navigates inside itself (the motion page switching demos, the map changing view), each of those
+navigations adds an entry to **your** tab's history.
+
+This was tested on this lesson. The embed was pointed at a same-origin page so it could be driven,
+then navigated twice inside itself:
+
+| Step | `history.length` | Result |
+|---|---|---|
+| project opened | 5 | pane open |
+| iframe navigates to `#one`, then `#two` | 7 | two entries added by the **iframe** |
+| plain `history.back()` | | **the pane stays open**; the iframe went back to `#one` |
+| the rail's arrow (`close()`) | | pane closed, history back at the entry before opening |
+
+A visitor pressing back would have to step through every page they visited inside the embed before
+the pane closed. `close()` jumps straight past all of them.
+
+## Jumping to an exact entry: the Navigation API
+
+```ts
+// on open: remember where we were
+this.#before = { key: navigation.currentEntry?.key, length: 0 };
+history.pushState({ project: slug }, "");
+this.#before.length = history.length;
+
+// on close
+navigation.traverseTo(before.key)
+```
+
+The **Navigation API** (`window.navigation`) is the modern replacement for `history`. Every entry has
+a stable `key`, and `traverseTo(key)` jumps to that exact entry, however many entries (yours or an
+iframe's) were added since. Chromium has had it for years, and Safari and Firefox have been adding it
+(check caniuse for the versions you care about), which is why the fallback below still matters.
+TypeScript's DOM types don't include it yet, so `pane-history.ts` declares the two members it uses.
+
+### The fallback: count
+
+Where `navigation` doesn't exist:
+
+```ts
+history.go(-Math.max(1, history.length - before.length + 1));
+```
+
+`before.length` is the length just after the pane's own entry was pushed. Whatever has been added since
+is the embed's, so going back by **that much plus one** lands on the entry before the pane. It's exact
+unless someone had gone *back* inside the iframe (which doesn't shrink `history.length`), and then it
+overshoots, which is still better than leaving the pane open.
+
+This was tested too, by hiding `window.navigation` on a fresh page, marking the start entry with
+`history.replaceState({ start: true }, "")`, opening a project, navigating inside the iframe and then
+closing. The history landed on `{ start: true }`.
+
+The last resort, `history.back()`, covers a `traverseTo` whose key has disappeared.
+
+## Things `pushState` doesn't do
+
+- **No URL change, so no deep link.** Reloading with a project open shows the index. Lesson 13 adds
+  `?project=slug`, and the history code will have to keep "close in one step" working when the page
+  *starts* with a project open (there's no entry before it to go back to).
+- **Forward doesn't reopen.** After closing, the browser's forward button moves forward to the pane's
+  entry, but nothing reopens the pane: `popstate` only ever closes it. That's the old site's behaviour,
+  kept 1:1.
+- **Astro doesn't take part.** None of this is an Astro feature. Astro's `<ClientRouter />` (view
+  transitions) manages history for navigations *between pages*. This is a pane inside one page, so it's
+  plain browser APIs in a custom element, which is the same code React was running.
+
+## Files in this lesson
+
+- `src/components/showcase/pane-history.ts`: `push()` on open, `back()` on close, the Navigation API and the counting fallback
+- `src/components/showcase/showcase-controller.ts`: `open()` pushes, `close()` moves the history, `popstate` closes the pane
+- `src/content/lessons/08-history.mdx`: this page
+- `ROADMAP.md`: lesson 08 ticked
+
+## Review checklist
+
+- [ ] Open a project, then press the browser's back button: the pane closes and you're still on the site.
+- [ ] Open "GSAP, motion, 3d", click through a few demos inside it, then press the rail's arrow: the pane closes in one go.
+- [ ] Do the same and press the browser's back button instead: it steps back inside the demos first, then closes the pane, as on the old site.
+- [ ] Escape and the pane's own Back button behave like the rail's arrow.
+- [ ] After closing, the forward button doesn't reopen the pane (unchanged from the old site).
