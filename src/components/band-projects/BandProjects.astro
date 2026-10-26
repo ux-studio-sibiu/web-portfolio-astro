@@ -82,7 +82,13 @@ const pills = (stack: string) => stack.split(",").map((tech) => tech.trim()).fil
 <script>
   // The thumbnails' arrival and the fade of a pinned one (projects-motion.ts).
   // Runs once per band on the page; in practice there is one.
-  import { projectsMotion } from "./projects-motion";
+  //
+  // Imported only from tablet width up, with motion allowed — the only time it
+  // does anything — so a phone never downloads it, or GSAP with it.
+  import { onDesktopMotion } from "@/scripts/desktop-motion";
 
-  document.querySelectorAll<HTMLElement>(".nsc-band-projects").forEach((band) => projectsMotion(band));
+  onDesktopMotion(async () => {
+    const { projectsMotion } = await import("./projects-motion");
+    document.querySelectorAll<HTMLElement>(".nsc-band-projects").forEach((band) => projectsMotion(band));
+  });
 </script>

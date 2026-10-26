@@ -82,7 +82,12 @@ const rows = items.map((entry, i) => {
 
 <script>
   // The frames sliding in from under the right column (experiments-motion.ts).
-  import { experimentsMotion } from "./experiments-motion";
+  // Imported only from tablet width up, with motion allowed — see
+  // desktop-motion.ts — so a phone never downloads it, or GSAP with it.
+  import { onDesktopMotion } from "@/scripts/desktop-motion";
 
-  document.querySelectorAll<HTMLElement>(".nsc-band-experiments").forEach((band) => experimentsMotion(band));
+  onDesktopMotion(async () => {
+    const { experimentsMotion } = await import("./experiments-motion");
+    document.querySelectorAll<HTMLElement>(".nsc-band-experiments").forEach((band) => experimentsMotion(band));
+  });
 </script>

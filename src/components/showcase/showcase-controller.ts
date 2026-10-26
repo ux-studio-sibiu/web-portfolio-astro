@@ -2,8 +2,7 @@ import { scrollBehavior } from "@/scripts/motion";
 import { PaneHistory } from "./pane-history";
 import { scrollSequence } from "./scroll-sequence";
 import { forwardWheel } from "./forward-wheel";
-import { ScrollTrigger } from "@/scripts/gsap";
-import { elasticLine } from "@/components/elastic-line/elastic-line";
+import { onDesktopMotion } from "@/scripts/desktop-motion";
 import { playTileReveal } from "@/components/tile-reveal/tile-reveal";
 import { preloadEmbedsIn } from "@/scripts/embed-preload";
 import { readMore } from "@/scripts/read-more";
@@ -38,6 +37,8 @@ import { projectPath, slugFromPath } from "@/lib/paths";
 //   motion     (lesson 10) the divider's pull towards the cursor, the tile cover
 //              over the pane as it opens, and ScrollTrigger refreshed whenever
 //              the content changes height. The bands start their own GSAP.
+//              From tablet width up only: GSAP is imported on demand
+//              (desktop-motion.ts), so phones never download it.
 //   preload    (lesson 12) each embed's site warmed as its entry comes into
 //              view (src/scripts/embed-preload.ts)
 
@@ -65,13 +66,17 @@ type State = {
 // own; the scroll sequence's ResizeObserver, which watches exactly that, calls
 // this. Coalesced to one per frame: a refresh recomputes every trigger on the
 // page, and a ResizeObserver can fire several times for one reflow.
+//
+// GSAP is only loaded from tablet width up (desktop-motion.ts), so until it
+// is there is nothing to refresh: `refresh` stays null on a phone for good.
+let refresh: (() => void) | null = null;
 let refreshQueued = false;
 const refreshTriggers = () => {
-  if (refreshQueued) return;
+  if (!refresh || refreshQueued) return;
   refreshQueued = true;
   requestAnimationFrame(() => {
     refreshQueued = false;
-    ScrollTrigger.refresh();
+    refresh?.();
   });
 };
 
@@ -143,8 +148,17 @@ class Showcase extends HTMLElement {
       onResize: refreshTriggers,
     });
     const stopWheel = forwardWheel(el.scroller, [column, el.railButton]);
-    // The divider watches the whole index pane for the cursor, not just itself.
-    const stopLine = elasticLine(this.querySelector<SVGSVGElement>("svg.nsc-elastic-line")!, el.indexPane);
+
+    // GSAP and the divider's pull, from tablet width up only: both are
+    // imported here, on demand, so a phone never downloads them. The divider
+    // watches the whole index pane for the cursor, not just itself.
+    let stopLine = () => {};
+    onDesktopMotion(async () => {
+      const [{ ScrollTrigger }, { elasticLine }] = await Promise.all([import("@/scripts/gsap"), import("@/components/elastic-line/elastic-line")]);
+      if (signal.aborted) return;
+      refresh = () => ScrollTrigger.refresh();
+      stopLine = elasticLine(this.querySelector<SVGSVGElement>("svg.nsc-elastic-line")!, el.indexPane);
+    });
     // Warms each embed's site as its entry scrolls into view, so the connection
     // is open — and usually the document cached — by the time the pane opens.
     // Entries opt in with `data-preload` (the bands put the `href` there).
