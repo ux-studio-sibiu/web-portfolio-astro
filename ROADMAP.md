@@ -8,7 +8,7 @@ Like `data-viz`, the lessons don't build separate demos: they all grow **one pro
 Each lesson also adds its own lesson page (`/lessons/NN-...`) that explains the concepts, compares them
 with what the Next.js version did, and ends with "Files in this lesson" and a "Review checklist".
 
-> Status: lessons 01–03 done. Decisions are settled in section 6.
+> Status: lessons 01–04 done. Decisions are settled in section 6.
 
 ---
 
@@ -189,7 +189,7 @@ what the lesson page explains (always with a **Next.js → Astro** comparison ta
 | 01 | Setup + the lesson layer ✓ | `npm create astro`, TS strict, `astro.config`, `Base` layout, lessons collection, `LessonPage`, `/lessons` index, placeholder home | Anatomy of a `.astro` file (frontmatter = build time, template = HTML), file-based routing, static output, `getStaticPaths` for the lesson pages, why Astro ships zero JS by default |
 | 02 | Styles, tokens, fonts ✓ | `globals.scss` + partials copied, explicit `@use` with the `@` alias, `Portfolio` layout (globals stay off the lesson pages), Fonts API (Archivo + latin-ext, JetBrains Mono), meta + viewport copied as-is | Scoped vs imported vs `is:global` styles, `class:list`, `define:vars` in `<style>`, font fallback metrics (G9, G12) |
 | 03 | The shell + text-only bands ✓ | Two-pane track, fixed column (identity + blurb), `.pane-scroll` with columns 2–3, detail-pane frame (closed), plus Core technologies, Work history, Skills and Contact as plain `.astro` (CV links to `public/cv`), all with no JS. `scripts/compare-markup.mjs` checks each component root against the Next build | Components, `Astro.props` with a typed `Props` interface, default and **named slots**, slot fallbacks, `Astro.slots.has`, `.map()` and conditionals in templates, fragments, `set:html` (and when not to) |
-| 04 | Projects as a content collection | `projects` collection + Zod schema, one `.mdx` per entry, `<Highlight>` in MDX, thumbs copied into `src/assets` | Content layer, `glob()` loader, `image()` in schemas, `getCollection` + sorting, `render()` → `<Content />`, MDX components mapping. **G1: why not children props.** |
+| 04 | Projects as a content collection ✓ | `projects` collection + Zod schema, one `.mdx` per entry (`<Summary>` / `<Points>` in the body, rendered one at a time by `ProjectCopy`), `getProjects()`, drafts, thumbs copied into `src/assets`, smartypants off | Content layer, `glob()` loader, `image()` in schemas, `getCollection` + sorting, `render()` → `<Content />`, MDX components mapping. **G1: why not children props.** |
 | 05 | Projects & experiments bands (markup + images) | Both bands rendered from the collection: sizes, groups (tools / various), `className` variants, image-composed thumbs (radio TV, randomize) | `astro:assets` `<Image>` / `<Picture>`, `sizes` / `widths`, AVIF, CLS, the LQIP decision (G4), `public/` vs `src/assets` |
 | 06 | First scripts: menu, rail, highlights | Side menu (portal → `<dialog>`/popover), section rail markup, highlight sweep (CSS `view()` + fallback script), reduced-motion helper | Processed `<script>` vs `is:inline`, bundling and dedupe (G2), **custom elements** as the Astro-native component behaviour, `data-*` handoff (G3), state before JS (G8) |
 | 07 | Detail pane | `<nsc-showcase>` controller: open/close, `<template>` details, `Embed.astro`, Advisor/FourInOne details, Escape, `inert` | React state → DOM state + custom events, template laziness (nothing loads until cloned) |

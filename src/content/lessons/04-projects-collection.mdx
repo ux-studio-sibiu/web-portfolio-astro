@@ -1,0 +1,157 @@
+---
+number: 4
+title: Projects as a content collection
+summary: The 16 <LinearProject> declarations from page.tsx become one MDX file each, checked by a Zod schema, with their thumbnails copied into src/assets. Nothing new on the portfolio yet; the table below is the collection, read live at build time.
+---
+
+import ProjectsTable from "@/components/lessons/ProjectsTable.astro";
+
+This lesson adds no pixels to the portfolio. It moves the **data** behind the Projects and
+Experiments bands into Astro, so lesson 05 has something to render. The table at the bottom of this
+page is the collection, read at build time by the same `getProjects()` the bands will use.
+
+## Why a collection (gotcha G1)
+
+In the Next app, `page.tsx` declared every entry as a component that renders nothing:
+
+```tsx
+<LinearProject slug="advisor" title="Accounting platform" thumb={advisorThumb} points={<>…</>} />
+```
+
+`ShowcaseLinear` then read those props back with `Children.toArray(children).map(c => c.props)` and
+handed them to the bands, the detail pane and the rail. That only works because a React element is an
+**object** you can inspect before it renders.
+
+An Astro component never sees its children as objects. A slot is **rendered HTML**:
+`Astro.slots.render("default")` returns a string. There's no `.props` to read. So "declare the data as
+children and let the parent inspect them" can't be ported. The data has to live somewhere the bands
+can **import** it from, and in Astro that's a content collection.
+
+## One file per entry
+
+```
+src/content/projects/
+  advisor.mdx          casedeschise.mdx     photography.mdx (draft)
+  motion.mdx           carbon-divide.mdx    randomize-studio.mdx
+  texture-studio.mdx   fluid-hover.mdx      static-background.mdx
+  light-study.mdx      four-in-one.mdx      map.mdx
+  paint.mdx            clasa-zero.mdx       radio.mdx
+  optimize-studio.mdx  first-website.mdx
+```
+
+- **The file name is the slug.** `advisor.mdx` has `id: "advisor"`, which is what
+  `data-scroll-to="advisor"` in Work history points at and what the detail pane will look up.
+- **Plain values go in the frontmatter**: title, year, role, stack, group, className, thumb, href and
+  so on.
+- **The two props that were JSX go in the body**: `summary` and `points`, still markup (next section).
+- **`order`** replaces "the order the JSX was written in". Files have no order, so it's a number in
+  steps of 10, which leaves room to slot one in.
+- **`draft: true`** replaces commenting out a whole `<LinearProject>`. `photography.mdx` is a draft:
+  its text is kept and `getProjects()` filters it out. Its thumbnails weren't copied, so its `thumb`
+  lines are YAML comments.
+- The comments that sat above entries in `page.tsx` came along as YAML `#` comments.
+
+## The schema: what the old `ProjectProps` type was, enforced
+
+`src/content.config.ts` describes every field with Zod. The old `ProjectProps` was a TypeScript type,
+so it was checked in the editor but not at build time against anything. Now a typo fails the build:
+
+```
+[InvalidContentEntryDataError] projects → texture-studio data does not match collection schema.
+  group: Invalid option: expected one of "experiments"|"tools"|"various"
+```
+
+Some fields worth looking at:
+
+- **`thumb: image().optional()`**: `image` is a helper Astro passes into the schema function. The
+  frontmatter holds a path relative to the `.mdx` file (`../../assets/projects/advisor.jpg`). Astro
+  checks that the file exists and turns it into image metadata: the table below shows each one's
+  width, height and format. Lesson 05 hands it to `<Image>`. It's the same job as
+  `import advisorThumb from "…jpg"` for `next/image`.
+- **`thumbNode: z.enum(["radio", "randomize", …])`**: in React this was a component
+  (`thumbNode={<RadioThumb />}`). Frontmatter is data, so it's a **name**, and the band maps names to
+  components in lesson 05.
+- **`href: z.string().url()`** catches a broken link when the site is built, not when someone clicks it.
+- **`.default(false)`** on the booleans means the bands never see `undefined`.
+
+The type of an entry comes for free: `CollectionEntry<"projects">` (aliased as `Project` in
+`src/lib/projects.ts`) knows every field and whether it's optional.
+
+## The body: `<Summary>` and `<Points>`
+
+```mdx
+<Summary>website for annual 'open house' event, in collaboration with <Highlight>local architects guild 'OAR'</Highlight></Summary>
+
+<Points>
+<li><Highlight>end-to-end ownership</Highlight> : designed, developed, tested, …</li>
+<li>heavy media content: architectural photography</li>
+</Points>
+```
+
+The two parts are wrapped in tags that **don't exist yet**. MDX lets the code that renders a body decide
+what each tag becomes, through the `components` prop:
+
+```astro
+<Content components={{ Highlight, Summary: Pass, Points: Skip }} />   ← only the summary
+<Content components={{ Highlight, Summary: Skip, Points: Pass }} />   ← only the points
+```
+
+`Pass.astro` renders its slot, and `Skip.astro` renders nothing (a slot that's never written out is never
+rendered). `ProjectCopy.astro` wraps this up as `<ProjectCopy entry={entry} part="summary" />`. The
+wrapper element stays with the caller: the same summary will be `<p class="entry-blurb">` in a band row
+and `<div class="card-summary">` in the hover card (lesson 11). `hasCopy(entry, "summary")` checks the
+raw body first, so a missing part leaves no empty wrapper.
+
+Mapping `Highlight` through `components` also means no `.mdx` file has to import it.
+
+## Two MDX surprises the port ran into
+
+**1. Smart quotes.** The first build printed `annual ‘open house’ event`, with curly quotes. Markdown's
+*smartypants* rewrites `'`, `"` and `--` as typographic characters. JSX never did that, so the copy
+would drift from the old site. `markdown: { smartypants: false }` in `astro.config.mjs` turns it off for
+all Markdown and MDX. The lesson pages now keep straight quotes too.
+
+**2. Newlines between blocks.** MDX puts a `"\n"` text node between top-level blocks and between the
+`<li>`s inside `<Points>`. JSX wouldn't. In HTML, whitespace between block elements renders as
+nothing, so the page looks identical. `compare-markup.mjs` doesn't know that yet, though, and lesson 05
+teaches it the difference between inline whitespace (which matters: a missing `{" "}`) and whitespace
+between blocks (which doesn't).
+
+## `getProjects()`: one place that knows the rules
+
+```ts
+export async function getProjects() {
+  const entries = await getCollection("projects", ({ data }) => !data.draft);
+  return entries.sort((a, b) => a.data.order - b.data.order);
+}
+```
+
+The second argument to `getCollection` is a **filter**, run on each entry. Sorting is needed because
+the collection's order isn't guaranteed. Every caller (the bands, the detail pane, later
+`/work/[slug]/`) goes through this function, so "drafts are hidden" and "order is `order`" are written
+once.
+
+## The collection, live
+
+<ProjectsTable />
+
+## Files in this lesson
+
+- `astro.config.mjs`: `markdown.smartypants` off
+- `src/content.config.ts`: the `projects` collection and its schema
+- `src/content/projects/*.mdx`: 16 entries + the `photography` draft, copied from `page.tsx`
+- `src/assets/projects/*.jpg`: the 9 thumbnails the entries reference, copied from `web-portfolio/app/assets/projects/`
+- `src/lib/projects.ts`: `getProjects()`, `hasCopy()`, the `Project` type
+- `src/components/project-copy/ProjectCopy.astro`, `Pass.astro`, `Skip.astro`: rendering one part of a body
+- `src/components/lessons/ProjectsTable.astro`: the table above (lesson page only)
+- `src/content/lessons/04-projects-collection.mdx`: this page
+- `ROADMAP.md`: lesson 04 ticked
+
+## Review checklist
+
+- [ ] The table lists 16 entries in page order, with `photography` reported as a draft.
+- [ ] Summaries show straight quotes (`'open house'`), and the three with a highlight render the two nested spans.
+- [ ] Compare a couple of `.mdx` files against their `<LinearProject>` in `web-portfolio/app/page.tsx`: same text, same fields.
+- [ ] Change `group: tools` to `group: tool` in one file and read the build error, then revert it.
+- [ ] Point a `thumb` at a file that doesn't exist and read the error, then revert it.
+- [ ] Set `draft: true` on an entry and watch it leave the table, then revert it.

@@ -12,6 +12,11 @@ export default defineConfig({
   // Lessons and, from lesson 04, projects are written in MDX.
   integrations: [mdx()],
 
+  // Markdown "smartypants" rewrites ' and " into curly quotes and -- into a
+  // dash. The project copy came out of JSX, which printed them as typed, so a
+  // 1:1 port has to leave them alone (lesson 04).
+  markdown: { smartypants: false },
+
   // The dev toolbar sits at the bottom of the screen, which is where the
   // section rail puts its menu button from lesson 06 on. Same trap as Next's
   // dev indicator in the old next.config.ts, so it stays off.

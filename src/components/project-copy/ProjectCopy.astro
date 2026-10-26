@@ -1,0 +1,28 @@
+---
+import { render } from "astro:content";
+import type { Project } from "@/lib/projects";
+import Highlight from "@/components/highlight/Highlight.astro";
+import Pass from "./Pass.astro";
+import Skip from "./Skip.astro";
+
+// Renders ONE part of a project's MDX body: its <Summary> or its <Points>.
+//
+// The body holds both, because both were JSX in the old page.tsx and need to
+// stay markup. The trick is the `components` prop on <Content />: it says what
+// each tag in the MDX turns into. Map the wanted part to a pass-through and
+// the other to nothing, and the same body renders as either one.
+//
+// The wrapper (<p class="entry-blurb">, <ul class="entry-points">…) is the
+// caller's: the same summary is a paragraph in a band row and a <div> in the
+// hover card. Check `hasCopy()` first so an absent part leaves no empty
+// wrapper behind.
+interface Props {
+  entry: Project;
+  part: "summary" | "points";
+}
+
+const { entry, part } = Astro.props;
+const { Content } = await render(entry);
+---
+
+<Content components={{ Highlight, Summary: part === "summary" ? Pass : Skip, Points: part === "points" ? Pass : Skip }} />

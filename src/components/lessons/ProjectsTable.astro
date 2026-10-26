@@ -1,0 +1,33 @@
+---
+import { getCollection } from "astro:content";
+import { getProjects, hasCopy } from "@/lib/projects";
+import ProjectCopy from "@/components/project-copy/ProjectCopy.astro";
+
+// Lesson 04's live view of the projects collection: what getProjects() hands
+// the bands, read at build time. Not part of the portfolio.
+const projects = await getProjects();
+const drafts = (await getCollection("projects", ({ data }) => data.draft)).map((entry) => entry.id);
+// Counted on the raw MDX, with commented-out points ({/* <li>… */}) left out.
+const pointCount = (body = "") => (body.replace(/\{\/\*[\s\S]*?\*\/\}/g, "").match(/<li[\s>]/g) ?? []).length;
+---
+
+<table>
+  <thead>
+    <tr><th>order</th><th>id</th><th>title</th><th>group</th><th>thumb</th><th>summary (rendered)</th><th>points</th></tr>
+  </thead>
+  <tbody>
+    {projects.map((entry) => (
+      <tr>
+        <td>{entry.data.order}</td>
+        <td><code>{entry.id}</code></td>
+        <td>{entry.data.title}</td>
+        <td>{entry.data.group ?? "(projects)"}</td>
+        <td>{entry.data.thumbNode ? <code>{entry.data.thumbNode}</code> : entry.data.thumb ? `${entry.data.thumb.width}×${entry.data.thumb.height} ${entry.data.thumb.format}` : "—"}</td>
+        <td>{hasCopy(entry, "summary") ? <ProjectCopy entry={entry} part="summary" /> : "—"}</td>
+        <td>{hasCopy(entry, "points") ? pointCount(entry.body) : "—"}</td>
+      </tr>
+    ))}
+  </tbody>
+</table>
+
+<p>{projects.length} entries on the page. Drafts left out: {drafts.length ? drafts.map((id) => <code>{id}</code>) : "none"}.</p>
