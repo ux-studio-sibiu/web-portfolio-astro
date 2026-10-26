@@ -1,0 +1,22 @@
+---
+import { getProjects } from "@/lib/projects";
+
+// A project's name inside a sentence of the band's copy, opening exactly what
+// its frame opens. A button, not an anchor: it is a pane sliding over the
+// page, not a navigation to a URL of its own. .inline-link is the shared
+// style — see globals.
+//
+// Falls back to plain text when no entry carries that slug, so a project can
+// be dropped (or set to draft) without this going looking for it.
+//
+// Nothing listens to `data-open` yet: lesson 07. The "view details" card at
+// the pointer is lesson 11.
+interface Props {
+  slug: string;
+}
+
+const { slug } = Astro.props;
+const exists = (await getProjects()).some((entry) => entry.id === slug);
+---
+
+{exists ? <button type="button" class="inline-link" data-open={slug}><slot /></button> : <slot />}

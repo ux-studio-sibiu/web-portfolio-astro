@@ -1,0 +1,38 @@
+---
+import type { Project } from "@/lib/projects";
+import RadioThumb from "@/components/radio-thumb/RadioThumb.astro";
+import RandomizeThumb from "@/components/randomize-thumb/RandomizeThumb.astro";
+import StaticThumb from "@/components/static-thumb/StaticThumb.astro";
+import FluidThumb from "@/components/fluid-thumb/FluidThumb.astro";
+import LightStudyThumb from "@/components/light-study-thumb/LightStudyThumb.astro";
+import MotionThumb from "@/components/motion-thumb/MotionThumb.astro";
+import DataVizThumb from "@/components/data-viz-thumb/DataVizThumb.astro";
+
+// A built thumbnail, picked by the name in the entry's `thumbNode`. In
+// page.tsx the prop WAS the component (`thumbNode={<RadioThumb />}`);
+// frontmatter is data, so it holds a name and this maps it back.
+//
+// The map is typed against the schema's enum: add a name to the enum in
+// content.config.ts and this stops compiling until it has a component.
+type Name = NonNullable<Project["data"]["thumbNode"]>;
+
+const NODES = {
+  radio: RadioThumb,
+  randomize: RandomizeThumb,
+  static: StaticThumb,
+  fluid: FluidThumb,
+  "light-study": LightStudyThumb,
+  motion: MotionThumb,
+  "data-viz": DataVizThumb,
+} satisfies Record<Name, unknown>;
+
+interface Props {
+  name: Name;
+}
+
+// A component held in a variable renders like any other, as long as the
+// variable is Capitalised.
+const Node = NODES[Astro.props.name];
+---
+
+<Node />

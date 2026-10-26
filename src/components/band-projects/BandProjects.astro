@@ -1,0 +1,80 @@
+---
+import type { Project } from "@/lib/projects";
+import { hasCopy } from "@/lib/projects";
+import Highlight from "@/components/highlight/Highlight.astro";
+import Thumb from "@/components/thumb/Thumb.astro";
+import ProjectCopy from "@/components/project-copy/ProjectCopy.astro";
+import "./band-projects.scss";
+
+// The projects band: one entry per project without a `group`, in `order`.
+//
+// Static for now. What the Next version did with React state and GSAP arrives
+// later: opening a project (lesson 07, off `data-open`), the thumbnail sliding
+// in and pinning (lesson 10), and the "View project" card at the pointer
+// (lesson 11).
+//
+// `data-identity-handover` is what makes the cover in the fixed column fade
+// out as THIS band arrives rather than as the first band does — the bands
+// above it are read over the name, so the name has to still be up (lesson 09).
+interface Props {
+  items: Project[];
+}
+
+const { items } = Astro.props;
+
+// What the thumbnail does, said once. The button below the copy is written from
+// the same constant, so the card at the pointer and the control at the foot of
+// the entry cannot end up promising different things.
+const VIEW_LABEL = "View project";
+
+const pills = (stack: string) => stack.split(",").map((tech) => tech.trim()).filter(Boolean);
+---
+
+<section class="band nsc-band-projects" data-section="Projects" data-identity-handover="">
+  <div class="band-content is-full">
+    <h2 class="band-heading band-title-large">Projects <span class="heading-subtitle"><Highlight alwaysSelected>Case studies</Highlight></span></h2>
+
+    {/* The FIRST entry is what the fixed column is timed off (`data-section-anchor`, lesson 09). Without it the band box is measured, and its padding crosses the trigger line 9rem early. */}
+    {items.map((entry, idx) => (
+      <article class:list={["scroll-entry", entry.data.className]} data-slug={entry.id} data-preload={entry.data.href} data-section-anchor={idx === 0 ? "" : undefined}>
+        <div class="entry-visual">
+          <div class="visual-sticky">
+            {/* The image opens the project too — same target as the View project button, so the obvious click works. */}
+            <button type="button" class:list={["entry-thumb", { "is-empty": !entry.data.thumb }]} aria-label={`Open ${entry.data.title}`} data-open={entry.id}>
+              {entry.data.thumb && <Thumb src={entry.data.thumb} sizes="(min-width: 1440px) 420px, (min-width: 768px) 30vw, 100vw" class="thumb-img" />}
+            </button>
+
+            {/* A second frame beside the first, for a project one image does not cover. It opens the same detail — there is nothing else to go to. */}
+            {entry.data.thumbAlt && (
+              <button type="button" class="entry-thumb" aria-label={`Open ${entry.data.title}`} data-open={entry.id}>
+                <Thumb src={entry.data.thumbAlt} sizes="(min-width: 1440px) 320px, (min-width: 768px) 30vw, 100vw" class="thumb-img" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div class="entry-body reveal">
+          <div class="entry-text">
+            <h3 class="entry-title">{entry.data.title}</h3>
+            <p class="entry-role">{entry.data.role}</p>
+
+            {/* The stack, one pill each, split off the `stack` field. It replaced the prose summary that used to sit here — hence the class name. */}
+            {entry.data.stack && (
+              <ul class="entry-tech-stack">
+                {pills(entry.data.stack).map((tech) => <li class="pill">{tech}</li>)}
+              </ul>
+            )}
+            {hasCopy(entry, "points") && <ul class="entry-points"><ProjectCopy entry={entry} part="points" /></ul>}
+          </div>
+
+          {/* Closes the copy off before the button, the same way a .spec-row closes off a line of the lists. */}
+          <hr class="entry-rule" />
+
+          <button type="button" class="view-more-button" data-open={entry.id}>
+            {entry.data.viewLabel ?? VIEW_LABEL} <span class="row-arrow" aria-hidden="true">&rarr;</span>
+          </button>
+        </div>
+      </article>
+    ))}
+  </div>
+</section>

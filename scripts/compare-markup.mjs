@@ -8,8 +8,16 @@
 //
 // Both files are normalised before comparing: comments, scripts and Astro's
 // data-astro-cid-* attributes are dropped, runs of whitespace become one space,
-// and the data-* hooks this port adds for its scripts are ignored. Whitespace
-// itself is NOT dropped, so a missing {" "} still shows up as a difference.
+// and the data-* hooks this port adds for its scripts are ignored.
+//
+// Whitespace is dropped only where HTML ignores it anyway: next to a block
+// element (between two <li>s, after <ul>…). Inside a line of text it is kept,
+// so a missing {" "} still shows up as a difference.
+//
+// Images are compared by what they ARE, not where they are served from: an
+// <img> is reduced to its class, alt, aria-hidden and sizes. The URLs, srcset,
+// dimensions and inline blur style come from two different image pipelines
+// and are meant to differ.
 import { readFileSync } from "node:fs";
 
 const [nextFile = "../web-portfolio/.next/server/app/index.html", astroFile = "dist/index.html"] = process.argv.slice(2);
@@ -19,6 +27,8 @@ const ROOTS = [
   ["aside", "nsc-fixed-column"],
   ["section", "nsc-band-core-technologies"],
   ["section", "nsc-band-work-history"],
+  ["section", "nsc-band-projects"],
+  ["section", "nsc-band-experiments"],
   ["section", "nsc-band-skills"],
   ["section", "nsc-band-contact"],
   ["section", "nsc-detail-pane"],
@@ -26,10 +36,24 @@ const ROOTS = [
 ];
 
 // data-* attributes the port adds as hooks for its own scripts.
-const PORT_HOOKS = ["words", "scroll-to"];
+const PORT_HOOKS = ["words", "scroll-to", "open"];
+
+// Elements HTML lays out as blocks, so whitespace beside them never renders.
+const BLOCKS = "ul|ol|li|p|div|section|article|aside|h[1-6]|details|summary|hr";
+
+// An <img> as the attributes that describe it, in a fixed order. A bare `alt`
+// (Astro) and `alt=""` (React) are the same empty alt text.
+const describeImg = (tag) => {
+  const keep = ["class", "alt", "aria-hidden", "sizes"]
+    .map((name) => tag.match(new RegExp(String.raw`\s(${name})(?:="([^"]*)")?(?=[\s>/])`)))
+    .filter(Boolean)
+    .map(([, name, value = ""]) => `${name}="${value}"`);
+  return `<img ${keep.join(" ")}>`;
+};
 
 const normalise = (html) =>
   html
+    .replace(/<img\b[^>]*>/g, describeImg)
     .replace(/<!--[\s\S]*?-->/g, "")
     .replace(/<script[\s\S]*?<\/script>/g, "")
     .replace(/\sdata-astro-cid-[a-z0-9]+(="")?/g, "")
@@ -37,10 +61,16 @@ const normalise = (html) =>
     // Same markup, spelt differently: React writes boolean attributes as
     // open="" and entities as the character; Astro keeps them as written.
     .replace(/(\s[a-z-]+)=""/g, "$1")
+    // React self-closes void elements (<hr/>) and keeps camelCase attribute
+    // names (referrerPolicy); HTML ignores both the slash and the case.
+    .replace(/\s*\/>/g, ">")
+    .replace(/<[a-z][^>]*>/g, (tag) => tag.replace(/\s([A-Za-z-]+)(?==)/g, (_, name) => ` ${name.toLowerCase()}`))
     .replace(/&larr;/g, "←")
     .replace(/&rarr;/g, "→")
-    .replace(/&#x27;/g, "'")
-    .replace(/\s+/g, " ");
+    .replace(/&#x27;|&#39;/g, "'")
+    .replace(/\s+/g, " ")
+    .replace(new RegExp(String.raw`(<\/?(?:${BLOCKS})\b[^>]*>) `, "g"), "$1")
+    .replace(new RegExp(String.raw` (<\/?(?:${BLOCKS})\b)`, "g"), "$1");
 
 // The outer HTML of the first <tag> whose class list contains `cls`, found by
 // counting opening and closing tags of the same name.

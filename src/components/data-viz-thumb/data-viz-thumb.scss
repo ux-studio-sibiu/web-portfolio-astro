@@ -1,0 +1,25 @@
+.nsc-data-viz-thumb {
+  position: relative;
+  display: block;
+  background: #fff;
+
+  // The picture sits above the static: positioned, so it stacks over the
+  // absolutely placed canvas drawn before it.
+  .frame-img {
+    position: relative;
+  }
+
+  // The static (drawn in data-viz-thumb.tsx): a few dozen pixels stretched over
+  // the frame. Pixelated, or the browser smooths the cells into a grey blur.
+  .static {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-width: none; // the reset in globals caps images at their box; a canvas is sized here
+    pointer-events: none;
+    image-rendering: crisp-edges;
+    image-rendering: pixelated;
+  }
+}

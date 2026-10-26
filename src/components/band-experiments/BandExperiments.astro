@@ -1,0 +1,80 @@
+---
+import type { Project } from "@/lib/projects";
+import Highlight from "@/components/highlight/Highlight.astro";
+import ExperimentEntry from "./ExperimentEntry.astro";
+import FrameRow from "./FrameRow.astro";
+import ToolLink from "./ToolLink.astro";
+import "./band-experiments.scss";
+
+// The experiments band. `items` is every grouped entry — experiments, tools and
+// various — in `order`, and that order is the order on the page: an experiment
+// is a row of its own, and a group's row (Design Tooling, Archive) appears
+// where the group's FIRST entry sits, holding all of that group's entries.
+//
+// The two group rows' copy lives here, as markup; their position comes from
+// the entries' `order`.
+//
+// Static for now: opening (lesson 07, off `data-open`), the frames sliding in
+// (lesson 10) and the cards at the pointer (lesson 11) come later.
+interface Props {
+  items: Project[];
+}
+
+const { items } = Astro.props;
+const tools = items.filter((entry) => entry.data.group === "tools");
+const various = items.filter((entry) => entry.data.group === "various");
+
+// For each entry: what it renders as. A grouped entry renders its group's
+// whole row the first time the group comes up, and nothing after that.
+const rows = items.map((entry, i) => {
+  const group = entry.data.group;
+  if (group === "experiments") return { kind: "entry" as const, entry };
+  if (items.findIndex((other) => other.data.group === group) !== i) return { kind: "none" as const };
+  return { kind: group === "tools" ? ("tools" as const) : ("various" as const) };
+});
+---
+
+<section class="band nsc-band-experiments" data-section="Experiments">
+  <div class="band-content is-full">
+    <h2 class="band-heading">Experiments</h2>
+
+    <ul class="experiment-list">
+      {rows.map((row) => {
+        if (row.kind === "entry") return <ExperimentEntry entry={row.entry} />;
+
+        if (row.kind === "tools") return (
+          <FrameRow items={tools} class="tools-entry" rows={Math.max(1, tools.length - 1)} title="Design Tooling" viewFeature stack="claude code, .skills, html, css, js, webgl, dev-design tooling">
+            <Fragment slot="blurb">Simple tools for experimenting with design elements such as <Highlight>font, colour, image and texture</Highlight>. Lightweight, can be used as <Highlight>.skills</Highlight> on existing projects, to enable design previews in-browser.</Fragment>
+            <Fragment slot="points">
+              <li><ToolLink slug="randomize-studio">Randomize Studio</ToolLink> :  adobe-like ui, for experimenting with typography, layout, effects. Its modeled as a landing-page generator</li>
+              <li><ToolLink slug="texture-studio">Texture Studio</ToolLink> : handles svg overlays and blending modes over images</li>
+              <li><ToolLink slug="fluid-hover">Fluid hover</ToolLink> : models a mouse driven, webGL visual effect </li>
+              <li><ToolLink slug="static-background">Static Background</ToolLink> : generates animated film-grain overlays</li>
+            </Fragment>
+          </FrameRow>
+        );
+
+        if (row.kind === "various") return (
+          <FrameRow items={various} class="various-entry" title="Archive" stack="react, next.js, zustand, vue, nuxt, maplibre, sanity, jquery, bootstrap, scss, sly, github copilot">
+            <Fragment slot="blurb">Concepts, prototypes and <Highlight>relics from another age</Highlight></Fragment>
+            <Fragment slot="points">
+              <li>
+                2022 - <ToolLink slug="map">Sibiu, city center</ToolLink> : highlights notable architecture and tells its story
+                <ul>
+                  <li>content via sanity cms</li>
+                  <li>vector .pmtiles hosted as a static file, via <Highlight>MapLibre (open-source)</Highlight></li>
+                  <li><Highlight>geolocation</Highlight> with boundary awareness - when used on mobile</li>
+                </ul>
+              </li>
+              <li>2021 - <ToolLink slug="clasa-zero">Kids STEM puzzles</ToolLink> : randomly generated puzzles for kids</li>
+              <li>2016 - <ToolLink slug="paint">Paint</ToolLink> : Win95 MS Paint rebuilt with claude and CSS</li>
+              <li>2016 - <ToolLink slug="optimize-studio">Optimize Studio</ToolLink> : ui interactions, effects and techniques</li>
+              <li>2014 - <Highlight><ToolLink slug="radio">Instant dance party</ToolLink></Highlight> plays random music and visuals</li>
+              <li>2013 - <ToolLink slug="first-website">My first website</ToolLink> : this one has to be in here, no matter how naive</li>
+            </Fragment>
+          </FrameRow>
+        );
+      })}
+    </ul>
+  </div>
+</section>

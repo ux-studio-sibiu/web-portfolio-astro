@@ -1,0 +1,13 @@
+---
+import Thumb from "@/components/thumb/Thumb.astro";
+import still from "@/assets/projects/flashlight-webcam-2.jpg";
+import "./light-study-thumb.scss";
+
+// The light-study frame: the scene's still, with the sun's static over it.
+// The movement is CSS (light-study-thumb.scss), so this needs no script.
+---
+
+<span class="nsc-light-study-thumb">
+  <Thumb src={still} sizes="(min-width: 768px) 30vw, 100vw" class="frame-img" />
+  <span class="sun-static" aria-hidden="true"></span>
+</span>

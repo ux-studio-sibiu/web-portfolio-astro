@@ -1,0 +1,160 @@
+---
+number: 5
+title: Projects and experiments bands, with images
+summary: Both bands rendered from the collection, the seven built thumbnails ported, every picture through astro:assets with a build-time blur placeholder, and the markup check extended to images. All nine component roots match the Next build.
+---
+
+The page now has every band. Projects shows the three case studies with their pills and points.
+Experiments has its single rows (motion, the carbon divide, the light study) and the two grids
+(Design Tooling and Archive). Nothing opens yet and nothing slides in. Those are lessons 07 and 10.
+
+## From collection to page
+
+```astro
+---
+const projects = await getProjects();
+---
+<BandProjects items={projects.filter((entry) => !entry.data.group)} />
+<BandExperiments items={projects.filter((entry) => entry.data.group)} />
+```
+
+It's the same split `ShowcaseLinear` made from its children, now made from the collection.
+`BandProjects` maps its items to `<article class="scroll-entry">`. `BandExperiments` keeps the rule
+from the Next version: an experiment is a row of its own, and a group (tools, various) becomes **one**
+row at the position of its first entry. The order on the page is still decided by the entries'
+`order` field.
+
+### Copy that belongs to the band stays in the band
+
+The Design Tooling and Archive rows have their own blurb and points, which belong to no single entry.
+In React they were props (`blurb={<>…</>}`). Here they're **named slots**, filled where the row is used:
+
+```astro
+<FrameRow items={tools} class="tools-entry" title="Design Tooling" viewFeature>
+  <Fragment slot="blurb">Simple tools for … <Highlight>font, colour, image and texture</Highlight>. …</Fragment>
+  <Fragment slot="points">
+    <li><ToolLink slug="randomize-studio">Randomize Studio</ToolLink> :  adobe-like ui, …</li>
+  </Fragment>
+</FrameRow>
+```
+
+Inside `FrameRow`, `Astro.slots.has("blurb")` decides whether the `<p class="entry-blurb">` is written
+at all. That's the slot-check from lesson 03, now in use.
+
+`ToolLink` is the old `toolLink()` function: a button when a project with that slug exists, plain text
+when it doesn't (so a draft project quietly unlinks). It awaits `getProjects()` itself, and component
+frontmatter is allowed to be async.
+
+## Built thumbnails: names back to components
+
+`thumbNode: radio` in the frontmatter becomes `<RadioThumb />` in `ThumbNode.astro`:
+
+```astro
+const NODES = { radio: RadioThumb, randomize: RandomizeThumb, … } satisfies Record<Name, unknown>;
+const Node = NODES[Astro.props.name];
+---
+<Node />
+```
+
+- A component stored in a variable renders like any other, **if the variable is Capitalised**
+  (`Node`, not `node`). Lowercase is read as an HTML tag.
+- `satisfies Record<Name, unknown>`, with `Name` taken from the schema's enum, means that adding a name
+  to `content.config.ts` breaks this file until the name has a component.
+
+The seven thumbnails split three ways:
+
+| Thumb | Moves by | In this lesson |
+|---|---|---|
+| Motion, light study | **CSS only** | Finished: hover the motion frame and the logo runs the curve |
+| Radio, randomize | Nothing (composed images) | Finished |
+| Static, fluid, data-viz | A canvas loop (WebGL for fluid) | Markup only. The canvases stay blank until lesson 11 |
+
+## Images: `astro:assets` instead of `next/image`
+
+Every optimised picture goes through `Thumb.astro`:
+
+```astro
+<Image src={src} alt="" sizes={sizes} widths={widths} class={className} style={style} />
+```
+
+- **`src`** is the image metadata from the collection (`image()` in the schema) or a direct
+  `import still from "@/assets/projects/…jpg"`. Either way Astro knows its size, which it writes as
+  `width`/`height`. The browser reserves the box before the file arrives, so there's **no layout shift**.
+- **`sizes`** is the same hint the Next code gave, for example
+  `(min-width: 768px) 30vw, 100vw`, which means "this image is about 30% of the viewport wide on tablet
+  and up".
+- **`widths`** is which files to make. Next made one per entry in its device and image size lists up to
+  the original width. `Thumb` does the same with a shorter list, plus the original width so nothing is
+  upscaled. The build log shows them being made: **51 WebP files** from 12 source images. The browser
+  uses `srcset` + `sizes` to download one.
+- **Format:** `next/image` chose **AVIF or WebP per request** from the browser's `Accept` header. That's
+  a server decision, and a static site has no server, so `Thumb` emits **WebP** only. Serving both needs
+  `<Picture formats={["avif", "webp"]}>`, which wraps each `<img>` in a `<picture>`, so it waits for the
+  performance pass (lesson 12).
+- **`public/` vs `src/assets/`:** the TV and its static GIF stay plain `<img>` from `public/radio/`,
+  because an optimiser turns an animated GIF into a still of its first frame. That's the same reason
+  the Next version used a plain `<img>`. Anything in `public/` is copied as-is: never resized,
+  re-encoded or hashed.
+
+### The blur placeholder (G4): rebuilt at build time
+
+`next/image` with `placeholder="blur"` put an inline style on every picture: a blurred 8-pixel-wide
+copy of the image as its background, so a frame shows the picture's colours before the file arrives.
+`astro:assets` has no such option, and the choices were:
+
+1. **No placeholder.** Simplest, but the frames flash empty, and that's not 1:1.
+2. **A dominant colour.** Cheap, but it isn't what the old site did.
+3. **Rebuild Next's exact placeholder.** ← chosen
+
+`src/lib/blur-placeholder.ts` does it with **sharp** (the image library Astro already uses, now a
+direct dependency): resize to 8px wide, base64 it, wrap it in the same SVG blur filter Next uses, and
+return the same `style` string. It runs at build time, so the browser gets the finished style with no
+JavaScript.
+
+There's a catch worth knowing about. To read the file, the helper needs its path on disk. Astro keeps
+it on image metadata as `fsPath`, but it's **not in the public type** (it's set non-enumerable on
+purpose), so the helper casts to reach it. It works, and if a future Astro removes it, the helper
+returns `undefined` and the images simply lose their placeholder rather than break. The cost is
+weight: each placeholder is about 1.3 kB of inline style, around 16 kB of HTML for the 12 optimised images.
+Lesson 12 can weigh that against the alternatives.
+
+## The markup check, extended
+
+`compare-markup.mjs` now covers the two new bands, and it had to learn three things:
+
+1. **Images are compared by what they are, not where they come from.** An `<img>` is reduced to its
+   `class`, `alt`, `aria-hidden` and `sizes`. URLs, `srcset`, dimensions and the blur style come from
+   two different pipelines and are meant to differ.
+2. **Whitespace next to block elements is dropped**, because HTML never renders it. That covers the
+   `\n` MDX puts between `<li>`s (lesson 04). Whitespace inside a line is still compared.
+3. **More spellings of the same thing:** a bare `alt` and `alt=""`, `<hr/>` and `<hr>`, `referrerPolicy`
+   and `referrerpolicy` (attribute names are case-insensitive).
+
+All **nine** roots come out SAME. Since every rule added to the script makes it more forgiving, it was
+checked the other way too: a copy of the build with one space removed and one pill lower-cased was
+caught as two DIFFs. A comparison you've only seen pass hasn't been tested.
+
+## Files in this lesson
+
+- `src/pages/index.astro`: projects loaded once, split between the two bands
+- `src/components/band-projects/BandProjects.astro` + `band-projects.scss`
+- `src/components/band-experiments/BandExperiments.astro`, `ExperimentEntry.astro`, `FrameRow.astro`, `ToolLink.astro` + `band-experiments.scss`
+- `src/components/thumb/Thumb.astro` (`<Image>` + blur) and `ThumbNode.astro` (name → component)
+- `src/components/{radio,randomize,static,fluid,light-study,motion,data-viz}-thumb/`: one `.astro` + its `.scss` each (`motion-thumb` also has `ThreeLogo.astro`)
+- `src/lib/blur-placeholder.ts`
+- `src/assets/projects/`: `randomize-studio-2.jpg`, `randomize-panel.jpg`, `data-viz-thumb.png`, copied
+- `public/radio/`: `static.gif`, `tv.png`, copied
+- `package.json`: `sharp` as a direct dependency
+- `scripts/compare-markup.mjs`: two more roots, image and block-whitespace normalising
+- `src/content/lessons/05-bands-images.mdx`: this page
+- `ROADMAP.md`: lesson 05 ticked
+
+## Review checklist
+
+- [ ] `/` shows Projects (3 entries) and Experiments (motion, carbon divide, Design Tooling, light study, Archive) in the old order.
+- [ ] Hover the motion frame: the logo runs the curve with no script on the page.
+- [ ] DevTools → Network → Img: each thumbnail loads **one** `.webp`, at a width close to its rendered size.
+- [ ] Throttle to Slow 3G and reload: frames show a blurred version before the picture arrives.
+- [ ] View source on an `<img>`: `srcset`, `sizes`, `width`/`height`, `loading="lazy"` and the blur `style`.
+- [ ] `node scripts/compare-markup.mjs` (after building both repos) prints SAME nine times.
+- [ ] Change `thumbNode: radio` to a name that isn't in the enum and read the build error, then revert it.

@@ -1,0 +1,203 @@
+@use "@/styles/breakpoints" as *;
+@use "@/styles/devices" as *;
+
+// No rail of its own: the full-height .column-rule between columns 2 and 3,
+// owned by the showcase shell, is the line these entries sit against. Both are
+// placed off --col-media, which is why they cannot drift apart.
+.nsc-band-projects {
+  // A long run-in off the fold, on top of the padding every band carries. The
+  // first project is the first thing after the identity, and this is the gap
+  // that makes arriving at it feel like arriving somewhere.
+  margin-top: 25rem;
+
+  // This band is `is-full`, so its content starts at the pane edge rather than
+  // in the second track. The heading is inset to land on the same line the
+  // entry copy starts on, instead of under the rail at the far left.
+  .band-heading {
+    // Shrink-wrapped so its right edge is the title's, which is what the
+    // subtitle is aligned to underneath.
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+    width: fit-content;
+    padding: 0 var(--gutter);
+
+    @include respond-to("tablet") {
+      padding: 0 var(--gutter) 0 calc(var(--col-media) + 3rem);
+    }
+
+    // Under the title, flush with its right edge — a label, not a second title.
+    .heading-subtitle {
+      font-size: 1rem;
+      line-height: 1;
+      letter-spacing: 0;
+      font-weight: 500;
+      text-transform: lowercase;
+    }
+  }
+
+  // The visual column stretches to the full entry height (grid default), which
+  // is what gives the sticky thumbnail inside exactly one entry of travel.
+  .scroll-entry {
+    // The size an entry is unless it says otherwise — see .large / .small
+    // below. NOT the root --thumb, which is the widest a thumbnail may get and
+    // exists to cut column 2 for it.
+
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    padding: 2.5rem 0;
+    padding-bottom: 0;
+
+    @include respond-to("tablet") {
+      grid-template-columns: var(--col-media) 1fr;
+      gap: 0;
+      padding: 4rem 0;
+      padding-bottom: 0;
+      // The copy alone is shorter than the thumbnail, which would leave the
+      // sticky image nothing to hold through. Give each entry a real share of
+      // the viewport so the pin has travel and reads as deliberate.
+      min-height: 65svh;
+    }
+  }
+
+  // Closes the right side of the media column so a thumbnail can wait out of
+  // sight beyond the divider and slide in — the same device, and the same
+  // polygon, as the experiments band; see .entry-visual there.
+  //
+  // A polygon rather than `overflow: hidden` for the reason given there, and for
+  // one more that matters here: an overflow ancestor becomes the scrollport a
+  // sticky child is measured against, which would break the pin outright.
+  // clip-path makes a stacking context and nothing else, so the pin survives it.
+  .entry-visual {
+    @include respond-to("tablet") {
+      clip-path: polygon(-100% -100%, 100% -100%, 100% 200%, -100% 200%);
+    }
+  }
+
+  // Off-size entries, put on whichever projects you want from page.tsx —
+  // No transform, filter or overflow on this or anything above it — either would
+  // break the sticky child below.
+  //
+  // A row, so an entry with two thumbnails sets them side by side. Packed to
+  // the right, which is what puts the last one's edge on the divider — the job
+  // `margin-left: auto` on the thumbnail used to do, and could not do twice.
+  .visual-sticky {
+    position: sticky;
+    top: 1.5rem;
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-start;
+    // Only an entry with two thumbnails ever sees this — the photography one —
+    // where the pair wants reading as two pictures, not one split down the middle.
+    gap: 1.75rem;
+
+    @include respond-to("tablet") {
+      top: 2.5rem;
+    }
+  }
+
+  // The last entry has nothing coming after it to release the pin, so its
+  // thumbnail would hold at the top of the screen through the whole gap below
+  // the band. It scrolls away with its own copy instead.
+  .scroll-entry:last-of-type .visual-sticky {
+    position: static;
+  }
+
+  // Everything this looks like is the shared .entry-thumb in globals.scss.
+  // What belongs to a PROJECT thumbnail is only the index badge over it.
+  .entry-thumb {
+    // Index flips to the paper colour once the block fills.
+    &:hover .thumb-index,
+    &:focus-visible .thumb-index {
+      color: var(--color-bg);
+    }
+  }
+
+  .thumb-img {
+    display: block;
+    width: 100%;
+    // Next supplies the intrinsic dimensions from the static import; auto height
+    // lets the original proportion decide how tall the block is.
+    height: auto;
+    // Sits under the index badge.
+    z-index: 0;
+  }
+
+  .thumb-index {
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    padding: 0.3rem 0.45rem;
+    background: var(--color-bg);
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.12em;
+    color: var(--color-muted);
+  }
+
+  .entry-body {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
+    padding: 0 var(--gutter);
+
+    @include respond-to("tablet") {
+      padding: 0 var(--gutter) 0 3rem;
+    }
+  }
+
+  // The measure for an entry's copy, set once here rather than on each child.
+  // A plain length on purpose: this is a text measure, not a column, so it must
+  // not move when --col-media or the gutters are retuned.
+  .entry-text {
+    width: 100%;
+    max-width: 38rem;
+  }
+
+  .entry-title {
+    margin: 0;
+    font-size: clamp(1.75rem, 3.6vw, 2.75rem);
+    line-height: 1;
+    letter-spacing: -0.04em;
+    font-weight: 700;
+  }
+
+  .entry-role {
+    margin: 0.65rem 0 0;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: lowercase;
+    color: var(--color-ink);
+  }
+
+  // Shared with the experiments band — see the mixin in src/styles/_devices.scss.
+  .entry-points {
+    @include entry-points;
+  }
+
+  // Hollow with a heavy frame, filling black on hover. Outline against the
+  // filled inline highlights is what keeps the two apart: same palette, opposite
+  // treatment, so the button reads as a control rather than another lit phrase.
+  // The line between an entry's copy and its button. Same weight, colour and
+  // 1.5rem of air either side as the rule under a .spec-row, so the two devices
+  // read as the same one; the measure is .entry-text's, so it ends where the
+  // copy above it does rather than running out into the column.
+  .entry-rule {
+    width: 100%;
+    max-width: 38rem;
+    margin: 1.5rem 0 0;
+    border: 0;
+    border-top: 1px solid var(--color-faint);
+  }
+
+  // Everything the button looks like is the shared .view-more-button in
+  // globals.scss; what belongs to THIS band is only how much room it takes.
+  .view-more-button {
+    margin: 1.5rem 0 10rem;
+  }
+}

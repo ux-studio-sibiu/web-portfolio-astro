@@ -1,0 +1,15 @@
+---
+import Thumb from "@/components/thumb/Thumb.astro";
+import stage from "@/assets/projects/randomize-studio-2.jpg";
+import panel from "@/assets/projects/randomize-panel.jpg";
+import "./randomize-thumb.scss";
+
+// Randomize Studio's frame: the generated page, with the tool's panel laid
+// over its corner.
+---
+
+<span class="nsc-randomize-thumb">
+  <Thumb src={stage} sizes="(min-width: 768px) 20vw, 50vw" class="stage" />
+  {/* aria-hidden, and no alt: it is the same tool the frame already names, said twice. The button around it carries the label. */}
+  <Thumb src={panel} sizes="(min-width: 768px) 8vw, 20vw" class="panel" aria-hidden="true" />
+</span>

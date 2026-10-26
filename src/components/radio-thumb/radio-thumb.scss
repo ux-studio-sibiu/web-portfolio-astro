@@ -1,0 +1,46 @@
+// The set and the picture in it. Every number here is measured off the png's
+// alpha channel rather than eyeballed — see the component for which is which.
+.nsc-radio-thumb {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  // Trims the transparent margin the .set is pushed out by, below.
+  overflow: hidden;
+
+  .set,
+  .screen {
+    position: absolute;
+    display: block;
+  }
+
+  // The cell is the set's INK — 298 x 205 — and the png is a 300 x 210 canvas
+  // with that ink sitting at (0, 1) inside it. So the canvas is blown up by the
+  // difference and pulled up by the offset, which lands the ink exactly on this
+  // box. That is the whole of "align to the others": the frames beside it are
+  // bordered boxes, and this is a picture with no border, so the SET has to be
+  // what meets their edge — not the transparent air around it.
+  .set {
+    top: calc(100% * -1 / 205);
+    left: 0;
+    width: calc(100% * 300 / 298);
+    height: calc(100% * 210 / 205);
+    // The reset in globals caps every image at the width of its box, and this
+    // one is deliberately wider than its box — that is what pushes the
+    // transparent margin out past the edge to be clipped. Capped, the canvas was
+    // held at 100% while the height still grew, which squashed the set by the
+    // 0.88% of the difference.
+    max-width: none;
+  }
+
+  // The screen hole, as a share of the ink box. The gif is larger than the hole
+  // and is covered rather than stretched: it is noise, and noise has no
+  // proportion worth keeping.
+  .screen {
+    top: 9.756%;
+    left: 7.383%;
+    width: 65.436%;
+    height: 70.732%;
+    object-fit: cover;
+  }
+}

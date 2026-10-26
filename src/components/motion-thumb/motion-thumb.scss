@@ -1,0 +1,140 @@
+// Coordinates are percentages of the 4:3 frame, matching the 100 x 75 diagram
+// box: x% = x, y% = y / 75 * 100. The curve runs from (14%, 78%) to
+// (86%, 18%), so the logo travels 72% across and 60% up.
+.nsc-motion-thumb {
+  --ink: #111;
+  --travel: 0.308s;
+  // cubic-bezier(0.65, 0, 0.35, 1): the curve drawn in the diagram.
+  --ease-curve: cubic-bezier(0.65, 0, 0.35, 1);
+
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  color: var(--ink);
+  // Opaque paper: .entry-thumb turns its background to ink on hover, which
+  // would swallow a black drawing laid on a transparent box.
+  background: #fff;
+
+  .diagram,
+  .trace {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    fill: none;
+    stroke: var(--ink);
+    overflow: visible;
+
+    // Hairlines at any frame size.
+    * { vector-effect: non-scaling-stroke; }
+  }
+
+  .guide {
+    stroke-width: 1;
+    stroke-dasharray: 3 4;
+    opacity: 0.45;
+  }
+
+  .ruler { stroke-width: 1; }
+  .tick { stroke-width: 1; opacity: 0.6; }
+
+  // Revealed by x, not along the path, so it stays exactly behind the logo,
+  // whose x is linear too.
+  .trace {
+    stroke-width: 2;
+    clip-path: inset(0 86% 0 0);
+    transition: clip-path var(--travel) linear;
+  }
+
+  .keyframe {
+    position: absolute;
+    width: 3.5%;
+    aspect-ratio: 1;
+    background: var(--ink);
+    transform: translate(-50%, -50%) rotate(45deg);
+
+    &.start { left: 14%; top: 78%; }
+    &.end { left: 86%; top: 18%; }
+  }
+
+  // Onion skin: faint copies on the curve at t = 0.25, 0.5, 0.75, x linear
+  // and y on the ease (0.0625, 0.5, 0.9375).
+  .ghost,
+  .logo {
+    position: absolute;
+    width: 15%;
+    transform: translate(-50%, -50%);
+
+    svg { display: block; width: 100%; height: auto; }
+  }
+
+  .ghost {
+    transition: opacity 0.084s ease;
+
+    &.one { left: 32%; top: 74.25%; opacity: 0.1; }
+    &.two { left: 50%; top: 48%; opacity: 0.16; }
+    &.three { left: 68%; top: 21.75%; opacity: 0.22; }
+  }
+
+  .wordmark {
+    position: absolute;
+    left: 9%;
+    top: 7%;
+    width: 30%;
+    height: auto;
+  }
+
+  // The two tracks fill the frame, so translating them by a percentage moves
+  // by that share of the frame.
+  .track-x,
+  .track-y {
+    position: absolute;
+    inset: 0;
+  }
+
+  .track-x { transition: transform var(--travel) linear; }
+  .track-y { transition: transform var(--travel) var(--ease-curve); }
+
+  .logo { left: 14%; top: 78%; }
+
+  .playhead {
+    position: absolute;
+    left: 14%;
+    top: 80%;
+    width: 1px;
+    height: 13%;
+    background: var(--ink);
+
+    // The triangle cap on a timeline's playhead.
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 50%;
+      border: 4px solid transparent;
+      border-top-color: var(--ink);
+      transform: translateX(-50%);
+    }
+  }
+}
+
+// Pointing at the frame (the .entry-thumb button around it) plays it.
+.entry-thumb {
+  &:hover,
+  &:focus-visible {
+    .nsc-motion-thumb {
+      .track-x { transform: translateX(72%); }
+      .track-y { transform: translateY(-60%); }
+      .trace { clip-path: inset(0 14% 0 0); }
+      .ghost { opacity: 0; }
+    }
+  }
+}
+
+// Shown as the diagram, not played, for anyone who has asked for less motion.
+@media (prefers-reduced-motion: reduce) {
+  .nsc-motion-thumb * {
+    transition: none !important;
+  }
+}

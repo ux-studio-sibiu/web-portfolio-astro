@@ -1,0 +1,48 @@
+---
+import type { Project } from "@/lib/projects";
+import { hasCopy } from "@/lib/projects";
+import Thumb from "@/components/thumb/Thumb.astro";
+import ThumbNode from "@/components/thumb/ThumbNode.astro";
+import ProjectCopy from "@/components/project-copy/ProjectCopy.astro";
+
+// One experiment's row: a single frame, and its own copy from the entry.
+interface Props {
+  entry: Project;
+}
+
+const { entry } = Astro.props;
+const pills = (list: string) => list.split(",").map((tech) => tech.trim()).filter(Boolean);
+---
+
+<li class:list={["scroll-entry-secondary", entry.data.className]} data-preload={entry.data.href}>
+  <div class="entry-visual">
+    {/* The frame opens the experiment too — same target as the View button, so the obvious click works. With no picture it is a blank frame (.is-empty), the same as a project with none. */}
+    <button type="button" class:list={["entry-thumb", { "is-empty": !(entry.data.thumbNode || entry.data.thumb) }]} aria-label={`Open ${entry.data.title}`} data-open={entry.id}>
+      {entry.data.thumbNode
+        ? <ThumbNode name={entry.data.thumbNode} />
+        : entry.data.thumb && <Thumb src={entry.data.thumb} sizes="(min-width: 768px) 30vw, 100vw" class="frame-img" />}
+    </button>
+  </div>
+
+  <div class="entry-body reveal">
+    <div class="entry-text">
+      <h3 class="entry-title">{entry.data.title}</h3>
+      <p class="entry-role">{entry.data.role}</p>
+      {/* The entry's summary, as the same paragraph a group row (Design Tooling) carries under its title. */}
+      {hasCopy(entry, "summary") && <p class="entry-blurb"><ProjectCopy entry={entry} part="summary" /></p>}
+
+      {/* The stack, one pill each, split off the `stack` field. */}
+      {entry.data.stack && (
+        <ul class="entry-tech-stack">
+          {pills(entry.data.stack).map((tech) => <li class="pill">{tech}</li>)}
+        </ul>
+      )}
+
+      {hasCopy(entry, "points") && <ul class="entry-points"><ProjectCopy entry={entry} part="points" /></ul>}
+    </div>
+
+    <button type="button" class="view-more-button" data-open={entry.id}>
+      {entry.data.viewLabel ?? "View"} <span class="row-arrow" aria-hidden="true">&rarr;</span>
+    </button>
+  </div>
+</li>

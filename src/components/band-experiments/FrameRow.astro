@@ -1,0 +1,77 @@
+---
+import type { Project } from "@/lib/projects";
+import Thumb from "@/components/thumb/Thumb.astro";
+import ThumbNode from "@/components/thumb/ThumbNode.astro";
+
+// A row whose visual column is a grid of frames rather than one, sharing a
+// single block of copy. Two of them: the tools, where one feature spans the
+// height and the rest stack beside it, and the various, four equal squares two
+// by two. Which shape a row takes is its `class` and lives in the stylesheet;
+// what is the same — the cells, and the arrival the band animates off
+// .frame-cell (lesson 10) — is here.
+//
+// The copy is the caller's, through named slots: `blurb` and `points`. Content
+// stays markup in BandExperiments rather than travelling here as props.
+//
+// `rows` is only for the tools grid, which needs its row count written out for
+// `grid-row: 1 / -1` to mean anything.
+interface Props {
+  items: Project[];
+  class: string;
+  title: string;
+  stack?: string;
+  rows?: number;
+  // Gives the row the same View button a single entry has, opening the FIRST
+  // item — in the tools grid, the feature that spans the row.
+  viewFeature?: boolean;
+}
+
+const { items, class: className, title, stack, rows, viewFeature = false } = Astro.props;
+const pills = (list: string) => list.split(",").map((tech) => tech.trim()).filter(Boolean);
+---
+
+{items.length > 0 && (
+  <li class={`scroll-entry-secondary ${className}`}>
+    <div class="entry-visual">
+      <ul class="frame-grid" style={rows ? { "grid-template-rows": `repeat(${rows}, var(--tool-row))`, "--tool-rows": rows } : undefined}>
+        {items.map((item) => (
+          <li class:list={["frame-cell", item.data.className]} data-preload={item.data.href}>
+            <button type="button" class="entry-thumb" aria-label={`Open ${item.data.title}`} data-open={item.id}>
+              {item.data.thumbNode
+                ? <ThumbNode name={item.data.thumbNode} />
+                : item.data.thumb
+                  ? <Thumb src={item.data.thumb} sizes="(min-width: 768px) 20vw, 50vw" class="frame-img" />
+                  : item.data.href && <iframe src={item.data.href} title={`${item.data.title}, live`} loading="lazy" tabindex="-1" aria-hidden="true" referrerpolicy="no-referrer-when-downgrade"></iframe>}
+
+              {/* aria-hidden: the button already carries the same words in its label, and a screen reader reading them twice is worse than not having them. This is for the eye. */}
+              {item.data.thumbLabel && <span class="frame-label" aria-hidden="true">{item.data.title}</span>}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+
+    <div class="entry-body reveal">
+      <div class="entry-text">
+        <h3 class="entry-title">{title}</h3>
+        {Astro.slots.has("blurb") && <p class="entry-blurb"><slot name="blurb" /></p>}
+
+        {/* Same pills and same list a single entry carries, so a row of frames reads as the same kind of entry as a row with one. */}
+        {stack && (
+          <ul class="entry-tech-stack">
+            {pills(stack).map((tech) => <li class="pill">{tech}</li>)}
+          </ul>
+        )}
+
+        {Astro.slots.has("points") && <ul class="entry-points"><slot name="points" /></ul>}
+      </div>
+
+      {/* Named rather than a bare "View": this row has four frames in it, so the button has to say which one it opens. */}
+      {viewFeature && (
+        <button type="button" class="view-more-button" data-open={items[0].id}>
+          View {items[0].data.title} <span class="row-arrow" aria-hidden="true">&rarr;</span>
+        </button>
+      )}
+    </div>
+  </li>
+)}

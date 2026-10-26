@@ -1,0 +1,32 @@
+---
+import { Image } from "astro:assets";
+import type { ImageMetadata } from "astro";
+import { blurStyle } from "@/lib/blur-placeholder";
+
+// Every optimised picture on the index goes through here: the stand-in for
+// next/image with `placeholder="blur"`.
+//
+// `sizes` is the same hint the Next version gave; `widths` is the list of files
+// to make for it. Next made one per entry of its device and image size lists
+// up to the original width; this does the same with a shorter list, plus the
+// original itself, so the browser never upscales.
+//
+// One format, WebP. next/image picked AVIF or WebP per request from the
+// browser's Accept header — a server decision a static site cannot make. A
+// <Picture> with both is the static answer; it changes the markup (a <picture>
+// around every <img>), so it waits for the performance pass in lesson 12.
+interface Props {
+  src: ImageMetadata;
+  sizes: string;
+  class: string;
+  "aria-hidden"?: "true";
+}
+
+const { src, sizes, class: className, "aria-hidden": ariaHidden } = Astro.props;
+
+const CANDIDATES = [256, 384, 640, 750, 828, 1080, 1200, 1920];
+const widths = [...CANDIDATES.filter((w) => w < src.width), src.width];
+const style = await blurStyle(src);
+---
+
+<Image src={src} alt="" sizes={sizes} widths={widths} class={className} style={style} aria-hidden={ariaHidden} />

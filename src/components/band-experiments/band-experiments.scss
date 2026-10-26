@@ -1,0 +1,564 @@
+@use "@/styles/breakpoints" as *;
+@use "@/styles/devices" as *;
+
+// Experiments. Same geometry as the project entries in band-projects — the same
+// --col-media grid, the same sticky visual against the divider, the same order
+// of frame, copy and button — under .scroll-entry-secondary rather than
+// .scroll-entry, so the two are addressable apart and can be pulled apart
+// further without touching the other.
+//
+// Where they already differ is scale: no points list, a shorter row, and type
+// a step down, because an experiment is a smaller claim than a project.
+.nsc-band-experiments {
+  // This band is `is-full`, so its content starts at the pane edge rather than
+  // in the second track. The heading is inset to land on the same line the
+  // entry copy starts on, instead of under the rail at the far left.
+  .band-heading {
+    padding: 0 var(--gutter);
+
+    @include respond-to("tablet") {
+      padding: 0 var(--gutter) 0 calc(var(--col-media) + 3rem);
+    }
+  }
+
+  // How much of its real size each frame is shown at. The iframe is rendered at
+  // 1 / --shot of the frame and scaled back down, so the experiment lays itself
+  // out at a desktop width instead of squeezing into a 320px box and dropping
+  // to its mobile layout.
+  --shot: 0.25;
+
+  // The frames are one size, and it is the middle of the two the projects
+  // alternate between — the rhythm up there is the projects' own, and repeating
+  // it here would read as the same band continuing rather than a second one.
+  // Column 2 is cut for the widest project thumbnail, so this always fits.
+
+  .experiment-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  // Packed close: a row only needs enough room to read as its own thing. The
+  // sticky frame (below) travels through whatever height the copy gives it.
+  // One number for every row in the band, the tools grid at the top included:
+  // the rows are different heights and hold different things, and letting any
+  // of them carry its own spacing is what made the column look unevenly set.
+  .scroll-entry-secondary {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    padding: 2.5rem 0 0;
+
+    @include respond-to("tablet") {
+      grid-template-columns: var(--col-media) 1fr;
+      gap: 0;
+      padding: 4rem 0 0;
+    }
+  }
+
+  // "Light this scene with your phone": a frame 16% under the default 320px,
+  // shown exactly as it is at rest. Every other frame waits greyscale for the
+  // pointer; this one is already a drawing, so it gets no filter at all.
+  .scroll-entry-secondary.light-study {
+    --thumb: 269px;
+
+    .entry-thumb {
+      filter: none;
+    }
+  }
+
+  // The frames arrive from under the right column, and this is what makes that
+  // possible: the animation pushes them right, and everything past this column's
+  // right edge is cut away. That edge IS the divider — the band's first grid
+  // track is --col-media wide and the whole band is inset by --col-fixed, so the
+  // two land on the same line at 50vw — which is why a frame reads as coming out
+  // from under the line rather than out of nowhere.
+  //
+  // A polygon rather than `overflow: hidden`: overflow cannot clip one axis on
+  // its own, and the thumbnails' drop shadow lives below the box. This closes
+  // the right side and leaves the other three wide open.
+  //
+  // Only from tablet up, because only there are there two columns to arrive
+  // between — and see the band component, which holds the animation to the same
+  // width.
+  .entry-visual {
+    @include respond-to("tablet") {
+      clip-path: polygon(-100% -100%, 100% -100%, 100% 200%, -100% 200%);
+    }
+  }
+
+  // A single experiment's frame holds at the top of the screen while its copy
+  // scrolls past, like a project thumbnail (.visual-sticky in band-projects,
+  // same top). The column stretches to the row's height, so the frame has
+  // exactly its own row to travel through; a row whose copy is shorter than the
+  // frame has nothing to hold through and simply scrolls. In the grid rows
+  // (Design Tooling, Archive) the whole grid holds as one block; the arrival
+  // still moves each frame in it on its own.
+  //
+  // Sticky survives the clip-path above (only an overflow ancestor would break
+  // it), and the arrival's transform on the frame itself moves it sideways on
+  // top of the pin.
+  //
+  // From tablet up: below it the frame sits over its copy, in a column of its
+  // own height, so there is nothing to travel.
+  .scroll-entry-secondary > .entry-visual > .entry-thumb,
+  .scroll-entry-secondary > .entry-visual > .frame-grid {
+    @include respond-to("tablet") {
+      position: sticky;
+      top: 2.5rem;
+    }
+  }
+
+  // Everything this looks like is the shared .entry-thumb in globals.scss —
+  // same 2px edge, same shadow, same colour-on-hover. What is added here is the
+  // alignment, and what a LIVE frame needs that a picture does not.
+  .entry-thumb {
+    // Against the divider, like a project thumbnail. Projects get this from the
+    // flex row they sit in, which an entry with two of them needs; here there is
+    // only ever one, so an auto margin does it without a wrapper. In the tools
+    // grid the cells are full width, so it costs nothing there.
+    margin-left: auto;
+    // A still in place of the running site, at its own proportion — the box
+    // takes its height from the picture rather than cropping it to fit.
+    .frame-img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    // A viewport has no intrinsic size, so only the live ones are given one.
+    &:has(iframe) {
+      aspect-ratio: 16 / 10;
+    }
+
+    iframe {
+      display: block;
+      // Percentages rather than a measured pixel width: the frame stays in step
+      // with the box at any viewport with nothing to recompute.
+      width: calc(100% / var(--shot));
+      height: calc(100% / var(--shot));
+      transform: scale(var(--shot));
+      transform-origin: top left;
+      border: 0;
+      // A live frame over the pane would swallow the wheel and the page would
+      // stop scrolling on it, and it would eat the click meant for the button
+      // it sits in. It is a picture of the experiment until it is opened.
+      pointer-events: none;
+    }
+  }
+
+  // A row whose visual column is a grid of frames rather than one. Everything
+  // the two such rows share lives here; what differs is the shape of the grid,
+  // below.
+  .frame-grid {
+    --frame-gap: 1rem;
+
+    display: grid;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    gap: var(--frame-gap);
+  }
+
+  .frame-cell {
+    display: flex;
+    min-width: 0;
+  }
+
+  // The title printed on a frame that has nothing recognisable in it — a texture,
+  // a field of noise. Set in the small label device the whole site uses, so it
+  // reads as a caption rather than as part of the picture.
+  //
+  // White with a shadow under it rather than a plate behind it: these two frames
+  // are both dark and both busy, and a solid block would cover the very thing it
+  // is labelling. .entry-thumb is already positioned — the hatch-shadow mixin
+  // makes it so — which is what this hangs off.
+  .frame-label {
+    // Centred by the four zeros and the auto margin together: inset stretches
+    // the box to the whole frame, the min-content sizes below shrink it back to
+    // the text, and `margin: auto` then has slack on all four sides to share
+    // out. Flex centring would not do, because the text has to be allowed to
+    // wrap and a flex item sizes itself to max-content.
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    // min-content is the whole trick for a word to a line: it makes the box as
+    // narrow as the longest WORD, so every space becomes a break. No <br> in the
+    // markup, and a title of any length behaves the same way.
+    width: min-content;
+    height: min-content;
+    z-index: 2;
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-align: center;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+    pointer-events: none;
+  }
+
+  // These fill their cell rather than taking the row's --thumb width, and the
+  // proportion comes from the grid rather than from the picture, so the shared
+  // rules do not apply.
+  .frame-grid .entry-thumb {
+    width: 100%;
+    height: 100%;
+
+    @include respond-to("tablet") {
+      width: 100%;
+    }
+
+    &:has(iframe) {
+      aspect-ratio: auto;
+    }
+
+    // A still has to fill the cell the same way a live frame does, so it is
+    // cropped to it rather than letterboxed inside it.
+    .frame-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  // The Tools row: the FIRST tool takes the wide column and the full height of
+  // the row, and the rest stack in the narrow one beside it. Which tool is the
+  // big one is therefore document order — reorder them in page.tsx to change it.
+  //
+  // The row count is written inline by the component, because only it knows how
+  // many tools there are, and `grid-row: 1 / -1` needs the rows to be explicit
+  // for -1 to mean anything.
+  .tools-entry {
+    .frame-grid {
+      // Tighter arrival than the shared defaults in band-experiments.tsx (5, 10, 4):
+      // the stack sets off 3% of the screen apart instead of 5, and the feature
+      // follows the last of it by 1% instead of 4 — one group arriving, not a queue.
+      // Read by schedule() there; the Archive keeps the defaults.
+      --arrive-delay: 3;
+      --arrive-last-delay: 5;
+      --arrive-clear: 1;
+      // The feature takes the proportion of its picture - randomize-studio-2.jpg
+      // is 953 x 762 - rather than being cut square. Change the picture, change
+      // these two numbers.
+      --feature-ratio: calc(953 / 762);
+      // A stack frame's width over its row height: 150 across a 106px row, the
+      // shape the three had when the feature was square. Kept, so they are the
+      // same frames, only smaller.
+      --stack-ratio: calc(150 / 106);
+
+      // What a row WAS, when the feature was square - the stack's row, whose
+      // count plus the gaps between is the height of the whole grid. Below wide
+      // it sized itself off 7vw; wide and up it was worked back from a 350px
+      // feature (350 does not fit below wide: at 1024 the media column has 384px
+      // to share). Off --tool-rows rather than a hard 3, so a fifth tool grows
+      // the stack by a row and nothing here changes.
+      --tool-base: clamp(4.5rem, 7vw, 7rem);
+      @include respond-to("wide") {
+        --tool-base: calc(
+          (350px - (var(--tool-rows, 3) - 1) * var(--frame-gap)) / var(--tool-rows, 3)
+        );
+      }
+
+      // The row now, worked back from the block keeping the width it had: a
+      // wider feature is paid for with height, shared by the feature and the
+      // stack beside it so their tops and bottoms still line up. With N rows, a
+      // gap g, the feature ratio k and the stack ratio a, the old block was
+      // (N + a) x base + N x g wide, and the new one is k x (N x row + (N - 1) x g)
+      // + g + a x row. Setting them equal gives this. At wide that is an 89px row:
+      // a 374 x 299 feature and a 126px stack, 516px across as before.
+      --tool-row: calc(
+        ((var(--tool-rows, 3) + var(--stack-ratio)) * var(--tool-base)
+          + (var(--tool-rows, 3) - 1) * (1 - var(--feature-ratio)) * var(--frame-gap))
+        / (var(--feature-ratio) * var(--tool-rows, 3) + var(--stack-ratio))
+      );
+
+      // Narrow stack first, wide one second: the feature sits against the
+      // divider, which is the edge everything in this column is aligned to and
+      // the side the frames arrive from. The feature's column is its own SPANNED
+      // HEIGHT times its picture's proportion; the stack takes what is left.
+      // --tool-rows is written beside the row template by the component, because
+      // the count is the one thing only it knows; the fallback is what the four
+      // tools currently come to.
+      grid-template-columns: 1fr calc(
+        (var(--tool-row) * var(--tool-rows, 3) + (var(--tool-rows, 3) - 1) * var(--frame-gap))
+          * var(--feature-ratio)
+      );
+    }
+
+    // Document order still leads with the feature — it is what the component
+    // writes first and what arrives first — so the columns are assigned rather
+    // than left to auto-placement.
+    .frame-cell:first-child {
+      grid-column: 2;
+      grid-row: 1 / -1;
+    }
+
+    .frame-cell:not(:first-child) {
+      grid-column: 1;
+      // They no longer fill the track, so something has to say which edge they
+      // line up on. The right one: it is the feature's edge, and everything in
+      // this column is aligned to an edge on the right.
+      justify-self: end;
+      // One width for all three, so the stack is a column of equal frames again
+      // rather than a ragged one — no per-cell rules, and adding a fifth tool
+      // needs nothing here. Off the row, so they keep their shape as the row
+      // shrinks to make room for the feature.
+      //
+      // min(_, 100%) is what keeps it honest at every width: 100% is the track,
+      // which is 1fr of whatever the feature leaves, and a frame clips to it
+      // instead of overrunning it.
+      width: min(calc(var(--tool-row) * var(--stack-ratio)), 100%);
+    }
+  }
+
+  // The Various row: four of equal weight, two by two. No feature and no
+  // spanning, so the cells carry their own proportion rather than taking it from
+  // a row height — which is what lets them differ. Two are square and two are
+  // landscape, on a diagonal, so neither shape reads as the set's own and
+  // neither row is the odd one.
+  .various-entry {
+    // Flex, not the grid the other row uses, and for one reason: every frame
+    // here is the SAME HEIGHT and its own width, which is the opposite of what a
+    // grid does. Fixed columns would have had to take height off a landscape
+    // frame to keep it inside its track; here the height is stated once and each
+    // frame takes whatever width its proportion asks for.
+    //
+    // Both lines are one square-ish frame plus one landscape frame, so neither
+    // is much longer than the other, and packing right leaves the ragged edge on
+    // the left where the column is open anyway.
+    .frame-grid {
+      // 10rem is the size asked for, a quarter up on the 8rem this held. Still a
+      // stated size rather than a share of the column — these are four of a kind
+      // and letting them simply grow with it would make them the largest thing in
+      // the band — but CAPPED, because at 10rem the line is 410px and the column
+      // has only 384 to give below about 1100px wide.
+      //
+      // The cap is the column worked out rather than a breakpoint, so the row
+      // takes whatever it can have at every width instead of jumping at one:
+      // --col-media less the two paddings on .entry-visual (--rail on the left, a
+      // flat 3rem on the right — NOT --gutter, which is 2.75rem and would be 4px
+      // out), less the gap and the same 2px of slack the width below carries.
+      // Divided by the line's own multiple of the height.
+      //
+      // That lands 10rem from roughly 1100px up and eases down to about 9.3rem at
+      // 1024, where the old 8rem was leaving room it did not need.
+      //
+      // --frame-scale then takes the whole row down a fifth (8rem at full width).
+      // The arrival in band-experiments.tsx reads it too: it keeps the sequence's
+      // timing worked out at full size, so the frames cross the same stretch of
+      // scroll over a shorter distance, i.e. more slowly. See frameScale there.
+      --frame-scale: 0.8;
+      --frame-h: calc(
+        var(--frame-scale) *
+          min(10rem, calc((var(--col-media) - var(--rail) - 3rem - var(--frame-gap) * 2 - 2px) / 3.4537))
+      );
+
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: var(--frame-gap);
+
+      // Exactly the LONGER of the two lines — the square, the television and
+      // Optimize Studio, which come to 3.4537 heights between them (1 + 298/205 + 1)
+      // — and no wider, which is what makes them wrap two (Sibiu, city center,
+      // Paint) and three without being told to: the square does not fit after
+      // the first two (3.6667 heights). The 2px is rounding slack: at a hair
+      // under, the second line breaks early. My first website, written last,
+      // wraps onto a third line of its own, against the right edge.
+      //
+      // It follows the ORDER of the entries in page.tsx, so reordering them or
+      // changing which one is .wide wants this number worked out again: it is
+      // the widths of whichever three share the last line, plus two gaps. The
+      // cap on --frame-h above divides by the same sum.
+      width: calc(var(--frame-h) * 3.4537 + var(--frame-gap) * 2 + 2px);
+      // The box is now narrower than the column, so it is the box that has to be
+      // pushed against the divider rather than its contents.
+      margin-left: auto;
+    }
+
+    // One height for all four — the ask — with the width following from the
+    // proportion. Stated rather than left to `aspect-ratio`, because a flex item
+    // sizes from its content first and a ratio alone leaves that a negotiation.
+    .frame-cell {
+      flex: 0 0 auto;
+      height: var(--frame-h);
+      width: var(--frame-h);
+    }
+
+    // Landscape rather than square. Height is fixed now, so this adds WIDTH —
+    // they grow sideways instead of the square ones losing height. Set per entry
+    // with `className` in page.tsx, and scoped to this row so the names cannot
+    // reach the tools grid above it.
+    .frame-cell.wide {
+      width: calc(var(--frame-h) * 4 / 3);
+    }
+
+    // The television is its own proportion: 298 x 205 is the set's INK, not the
+    // png's canvas — see radio-thumb.scss, which blows the canvas up so the ink
+    // fills the cell exactly. That is what lets a picture with no frame line up
+    // with four that have one.
+    .frame-cell.tv {
+      width: calc(var(--frame-h) * 298 / 205);
+    }
+
+    // My first website: the still is the left 450 x 325 of the old site's
+    // 1495 x 325 banner (subtitlu4.jpg), cut to exactly what shows. Cropping
+    // the strip in CSS instead left the visible third blurred, since the image
+    // was sized for the whole strip at the cell's width. Written last in
+    // page.tsx, so it has the third line to itself.
+    .frame-cell.first-site {
+      width: calc(var(--frame-h) * 450 / 325);
+    }
+
+    // TV static over the frame while it is pointed at (Optimize Studio). The
+    // same noise tile as the light-study thumb's sun (light-study-thumb.scss),
+    // screened over the dark screenshot so only its lights show, and jumping
+    // rather than sliding. ::after because ::before is the hatch shadow; the
+    // shared hover rule fades ::after OUT, which this, being more specific,
+    // turns round.
+    .frame-cell.static-hover .entry-thumb {
+      &::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Cfilter id='s' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='1' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='linear' slope='4' intercept='-1.5'/%3E%3CfeFuncG type='linear' slope='4' intercept='-1.5'/%3E%3CfeFuncB type='linear' slope='4' intercept='-1.5'/%3E%3CfeFuncA type='linear' slope='0' intercept='1'/%3E%3C/feComponentTransfer%3E%3CfeComponentTransfer%3E%3CfeFuncR type='table' tableValues='0 1'/%3E%3CfeFuncG type='table' tableValues='0 1'/%3E%3CfeFuncB type='table' tableValues='0 1'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='80' height='80' filter='url(%23s)'/%3E%3C/svg%3E");
+        background-size: 160px 160px;
+        mix-blend-mode: screen;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease-out;
+      }
+
+      &:hover::after,
+      &:focus-visible::after {
+        opacity: 0.45;
+        animation: archive-static 0.25s steps(1, end) infinite;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        &:hover::after,
+        &:focus-visible::after {
+          animation: none;
+        }
+      }
+    }
+
+    // It IS the frame, so it is not given one: no rule, no wash behind it and no
+    // hatch under it. The other three are screenshots and want a frame to read
+    // as objects; this one is already an object.
+    .frame-cell.tv .entry-thumb {
+      background: none;
+      border: 0;
+
+      &::before {
+        content: none;
+      }
+    }
+  }
+
+  .entry-body {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
+    padding: 0 var(--gutter);
+
+    @include respond-to("tablet") {
+      padding: 0 var(--gutter) 0 3rem;
+    }
+  }
+
+  // The measure for an entry's copy, set once here rather than on each child.
+  // A plain length on purpose: this is a text measure, not a column, so it must
+  // not move when --col-media or the gutters are retuned.
+  .entry-text {
+    width: 100%;
+    max-width: 38rem;
+  }
+
+  // Shared with the projects band — see the mixin in src/styles/_devices.scss.
+  // An experiment row used to be a title, a role and a row of pills; the points
+  // are what make it read as the same kind of entry a project is.
+  .entry-points {
+    @include entry-points;
+  }
+
+  // The one sentence the Tools row carries, where every other row has pills.
+  .entry-blurb {
+    margin: 1rem 0 0;
+    // Sits directly beside .entry-points in the same block, so it takes the
+    // same small-copy face and size.
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    line-height: 1.55;
+  }
+
+  .entry-title {
+    margin: 0;
+    font-size: clamp(1.375rem, 2.4vw, 2rem);
+    line-height: 1.05;
+    letter-spacing: -0.035em;
+    font-weight: 700;
+  }
+
+  .entry-role {
+    margin: 0.5rem 0 0;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  // Same hollow-to-filled button as a project's, one size down and without the
+  // 10rem of air under it — the entries here follow each other closely.
+  // Everything the button looks like is the shared .view-more-button in
+  // globals.scss; what belongs to THIS band is only how much room it takes.
+  .view-more-button {
+    margin: 1.5rem 0 3rem;
+  }
+
+  // Below tablet both grids span the column instead of holding the size they
+  // were worked out to at desktop widths. Their sizes above are measured off
+  // --col-media, which is half the SCREEN, so on a phone they shrank to a block
+  // in the corner. Here they are measured off the column itself instead: the
+  // media column becomes a size container, and 100cqw is its content width.
+  @include respond-to-max("tablet") {
+    .tools-entry .entry-visual,
+    .various-entry .entry-visual {
+      container-type: inline-size;
+    }
+
+    // The same equation the --tool-row note above sets up, solved the other way:
+    // the block's old width, (N + a) x base + N x g, set to the full column.
+    .tools-entry .frame-grid {
+      --tool-base: calc(
+        (100cqw - var(--tool-rows, 3) * var(--frame-gap)) / (var(--tool-rows, 3) + var(--stack-ratio))
+      );
+    }
+
+    // Three to a line would make every frame small on a phone, so here the box
+    // goes back to the width of the square and the television (2.4498 heights
+    // plus a gap and 2px of slack): Sibiu, city center and My first website
+    // each take a line of their own, at the top and the bottom, and the other
+    // four wrap two and two between them. That width set to the column and
+    // worked back to a height.
+    .various-entry .frame-grid {
+      --frame-h: calc((100cqw - var(--frame-gap) - 2px) / 2.4498);
+      width: calc(var(--frame-h) * 2.4498 + var(--frame-gap) + 2px);
+    }
+  }
+}
+
+// The static over the Optimize Studio frame (.static-hover above): the
+// pattern jumps between offsets, which is what makes it read as noise.
+@keyframes archive-static {
+  0%   { background-position: 0 0; }
+  20%  { background-position: -13px 9px; }
+  40%  { background-position: 7px -17px; }
+  60%  { background-position: -19px -5px; }
+  80%  { background-position: 11px 15px; }
+}

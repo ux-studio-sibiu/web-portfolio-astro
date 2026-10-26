@@ -1,0 +1,13 @@
+---
+import Thumb from "@/components/thumb/Thumb.astro";
+import globe from "@/assets/projects/data-viz-thumb.png";
+import "./data-viz-thumb.scss";
+
+// The globe still, with a layer of static drawn over it on a canvas. The
+// canvas is blank until lesson 11 brings its drawing loop.
+---
+
+<span class="nsc-data-viz-thumb">
+  <canvas class="static" aria-hidden="true"></canvas>
+  <Thumb src={globe} sizes="(min-width: 768px) 30vw, 100vw" class="frame-img" />
+</span>

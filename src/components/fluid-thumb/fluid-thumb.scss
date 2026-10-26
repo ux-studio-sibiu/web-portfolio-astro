@@ -1,0 +1,20 @@
+.nsc-fluid-thumb {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  // The texture is white and the canvas is opaque, so this only shows in the
+  // moment before the first paint.
+  background: #ffffff;
+  overflow: hidden;
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    // The backing store is sized in device pixels by the component; this is the
+    // CSS box it is stretched over. The reset in globals caps images and canvas
+    // at their box, which would fight that.
+    max-width: none;
+  }
+}
