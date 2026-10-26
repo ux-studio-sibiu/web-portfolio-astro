@@ -1,4 +1,5 @@
 ---
+import type { Project } from "@/lib/projects";
 import FixedColumn from "@/components/fixed-column/FixedColumn.astro";
 import ElasticLine from "@/components/elastic-line/ElasticLine.astro";
 import DetailPane from "@/components/detail-pane/DetailPane.astro";
@@ -17,6 +18,13 @@ import "./showcase.scss";
 // Behaviour lives in <nsc-showcase> (showcase-controller.ts), a custom element
 // wrapped around the markup. It is `display: contents`, so it adds no box of
 // its own and the layout is exactly what it was without it.
+//
+// `projects` is every entry that can be opened, for the detail pane.
+interface Props {
+  projects: Project[];
+}
+
+const { projects } = Astro.props;
 ---
 
 <nsc-showcase>
@@ -38,7 +46,7 @@ import "./showcase.scss";
         <ElasticLine class="column-rule" />
       </section>
 
-      <DetailPane />
+      <DetailPane projects={projects} />
 
     </div>
 

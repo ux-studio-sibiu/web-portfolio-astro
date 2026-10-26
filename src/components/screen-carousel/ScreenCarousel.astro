@@ -1,0 +1,86 @@
+---
+import { getImage } from "astro:assets";
+import type { ImageMetadata } from "astro";
+import "./screen-carousel.scss";
+
+// A stack of screenshots you click through, in a frame: a browser window by
+// default, or the vintage laptop when `laptop` is set — the mask is a PNG with
+// the screen cut out of it, and the shot sits behind it in the cut.
+//
+// LEFT CLICK anywhere on the frame steps forward, RIGHT CLICK steps back, and
+// the bullets under it jump straight to one. Arrow keys do the same as the two
+// clicks, since the frame is a real button. The arrows over the frame say so.
+//
+// Only the current shot and the one after it are in the DOM. The next one is
+// there hidden, so a click paints immediately instead of waiting on a fetch,
+// and the rest are never requested unless someone clicks that far.
+//
+// This file renders the starting state. Every shot's optimised URLs are worked
+// out HERE, at build time, with getImage(), and handed to the browser as JSON
+// in `data-shots`; <nsc-screen-carousel> (screen-carousel-element.ts) only swaps
+// them in. Its script is loaded by DetailPane.astro, not here — see there.
+interface Props {
+  label: string;
+  year: string;
+  shots: ImageMetadata[];
+  start?: number;
+  laptop?: boolean;
+}
+
+const { label, year, shots, start = 0, laptop = false } = Astro.props;
+const count = shots.length;
+
+const SIZES = "(min-width: 1440px) 600px, (min-width: 1024px) 40vw, 92vw";
+
+// One optimised WebP set per shot. `getImage` is the function behind <Image>:
+// same files, but it returns the URLs instead of an <img>, which is what a
+// script that swaps pictures needs.
+const optimised = await Promise.all(
+  shots.map(async (shot) => {
+    const image = await getImage({ src: shot, widths: [384, 640, shot.width].filter((w, i, all) => w <= shot.width && all.indexOf(w) === i), sizes: SIZES });
+    return { src: image.src, srcset: image.srcSet.attribute };
+  }),
+);
+
+const current = optimised[start];
+const next = optimised[(start + 1) % count];
+const altFor = (i: number) => `${label}, screen ${i + 1} of ${count}`;
+---
+
+<nsc-screen-carousel class:list={["nsc-screen-carousel", { laptop }]} data-label={label} data-index={start} data-shots={JSON.stringify(optimised)}>
+  {/* The frame and the two arrows over it share a box, so the arrows centre on the screen itself rather than on the screen plus its bullets. */}
+  <div class="screen-stage">
+    <button type="button" class="screen-frame" aria-label={`${label}. Screen ${start + 1} of ${count}. Click for the next one.`}>
+      <span class="screen-wrap">
+        {!laptop && <span class="browser-bar" aria-hidden="true"></span>}
+
+        <span class="shot-box">
+          <img src={current.src} srcset={current.srcset} sizes={SIZES} alt={altFor(start)} class="shot" decoding="async" />
+          {/* There only to warm the next one. */}
+          <img src={next.src} srcset={next.srcset} sizes={SIZES} alt="" aria-hidden="true" class="shot next" decoding="async" />
+        </span>
+
+        {laptop && <span class="laptop-mask" aria-hidden="true"></span>}
+      </span>
+
+      <span class="year-tag" aria-hidden="true">{year}</span>
+    </button>
+
+    {/* Siblings of the frame, not children: a button cannot hold buttons, and being siblings is also what stops a click on an arrow counting as a click on the frame behind it. */}
+    <button type="button" class="screen-nav prev" aria-label={`${label}, previous screen`}>
+      <svg viewBox="0 0 60 60" aria-hidden="true"><path d="M29 43l-3 3-16-16 16-16 3 3-13 13 13 13z" /></svg>
+    </button>
+
+    <button type="button" class="screen-nav next" aria-label={`${label}, next screen`}>
+      {/* The same path, turned over. */}
+      <svg viewBox="0 0 60 60" aria-hidden="true"><g transform="translate(60,0) scale(-1,1)"><path d="M29 43l-3 3-16-16 16-16 3 3-13 13 13 13z" /></g></svg>
+    </button>
+  </div>
+
+  {/* Outside the frame: a button cannot hold buttons, and these are the one part of the control that is not "advance". */}
+  <div class="bullets">
+    {shots.map((_, idx) => (
+      <button type="button" class:list={["bullet", { "is-active": idx === start }]} aria-label={`${label}, screen ${idx + 1}`} aria-current={idx === start ? "true" : "false"}></button>
+    ))}
+  </div>
+</nsc-screen-carousel>

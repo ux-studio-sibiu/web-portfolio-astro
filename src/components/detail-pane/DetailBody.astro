@@ -1,0 +1,26 @@
+---
+import type { Project } from "@/lib/projects";
+import Embed from "@/components/embed/Embed.astro";
+import Advisor from "@/components/details/advisor/Advisor.astro";
+import FourInOne from "@/components/details/four-in-one/FourInOne.astro";
+
+// What a project shows in the detail pane. Replaces registry.ts.
+//
+// A project with a component of its own gets it, by slug. Every other one
+// with `embed` and an `href` is its live site in an iframe. Adding a project
+// that is an embed is therefore only its .mdx file; one with a body of its own
+// is a component plus a line here.
+interface Props {
+  entry: Project;
+}
+
+const BODIES = {
+  advisor: Advisor,
+  "four-in-one": FourInOne,
+};
+
+const { entry } = Astro.props;
+const Body = BODIES[entry.id as keyof typeof BODIES];
+---
+
+{Body ? <Body /> : entry.data.embed && entry.data.href ? <Embed entry={entry} /> : null}

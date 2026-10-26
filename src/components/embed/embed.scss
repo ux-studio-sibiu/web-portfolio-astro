@@ -1,0 +1,15 @@
+// One stylesheet for every live embed. In the Next version there were four
+// copies of these same rules — .nsc-experiment-embed, shared by the
+// experiments, and one per project embed (.nsc-project-casedeschise,
+// .nsc-project-clasa-zero, .nsc-project-map) — all saying the same thing.
+.nsc-embed {
+  height: 100%;
+  background: var(--color-wash);
+
+  iframe {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+}

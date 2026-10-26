@@ -1,0 +1,113 @@
+---
+import type { ImageMetadata } from "astro";
+import ScreenCarousel from "@/components/screen-carousel/ScreenCarousel.astro";
+import "./advisor.scss";
+
+// Detail body for the Advisor project. Rendered into a <template> like every
+// other detail (see DetailPane.astro), so nothing in it — not one of its forty
+// screenshots — is requested until the project is opened. Owns its own layout:
+// a detail body can be prose, a stat block, images, an iframe, anything.
+//
+// Four screen stacks, one per era of the product, the way the old portfolio
+// showed it: three browser windows and the laptop the first version ran on.
+// Click a frame to step through it, right-click to go back, or use the bullets.
+//
+// The shots moved from public/ into src/assets/advisor/ so they get optimised
+// like every other picture. There are forty of them, so they are not imported
+// one by one: import.meta.glob (a Vite feature) imports a whole folder at
+// once, and `eager: true` makes that happen at build time rather than lazily.
+// The keys are file paths, so sorting them keeps the numbered order.
+const folder = (files: Record<string, { default: ImageMetadata }>) =>
+  Object.keys(files).sort().map((path) => files[path].default);
+
+const SHOTS_2026 = folder(import.meta.glob("@/assets/advisor/2026/*.jpg", { eager: true }));
+const SHOTS_NCW = folder(import.meta.glob("@/assets/advisor/ncw/*.jpg", { eager: true }));
+const SHOTS_CLASSIC = folder(import.meta.glob("@/assets/advisor/classic/*.jpg", { eager: true }));
+const SHOTS_OLDIES = folder(import.meta.glob("@/assets/advisor/oldies/*.jpg", { eager: true }));
+---
+
+<div class="nsc-project-advisor">
+  <div class="project-columns">
+    {/* The copy scrolls on its own; the screens beside it never move. */}
+    <div class="project-copy">
+      {/* Set like an entry in the index rather than like the sections under it: a title, the line of what it is, and the three figures that say the size of it — then a rule, and the detail begins. */}
+      <section class="intro">
+        <h2 class="project-title">Accounting platform</h2>
+        <p class="project-role">Saas for nordic accounting firms and their clients</p>
+
+        <p class="project-scale">
+          <strong>8k firms</strong> · <strong>40k active users</strong> · <strong>continuous delivery since 2018</strong>
+        </p>
+
+        <hr class="intro-rule" />
+
+        <p>
+          My role involved long-standing contribution to the product development, with focus on advancing the UI system.
+          Close collaboration with ux teams to bridge design intent and technical implementation.
+        </p>
+      </section>
+
+      <section>
+        <p>
+          <strong><code>UI system</code> : </strong>
+          <code>KendoUI</code> + <code>.NET MVC</code> + <code>custom SPA</code> + <code>VUD</code>
+        </p>
+        <ul>
+          <li><strong><code>KendoUI</code> : </strong>base components are styled using the VUD design system and extended with significant custom behavior.</li>
+          <li><strong><code>VUD</code> : </strong> Visma Unified Design, token based, frequent updates.</li>
+          <li>
+            <strong><code>custom SPA framework</code></strong> over <code>.NET MVC</code> and <code>KendoUI</code> also integrating <code>VUD</code> design system.
+            Only possible after a full refactor of UI code
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <strong><code>Notable features</code> : </strong>
+        <ul>
+          <li>8000+ accounting firms - 40k active users</li>
+          <li>complex UI with dense functionality</li>
+          <li>multi-step flows with branching logic (reversible wizard)</li>
+          <li>configurable <code>dashboards</code> (resizable, draggable, lazy-loading)</li>
+          <li><code>dynamic grids</code> (configurable columns, resize, reorder, persistent filtering, endless scroll, expandable rows)</li>
+          <li>intricate <code>combobox</code> inputs: persistent states, chained async loading, segmented with infinite scroll, inline add, multi-select, auto-filled values</li>
+          <li>long running tasks send live updates via <code>signalR</code></li>
+          <li>rigorous <code>validation</code> : client + server</li>
+          <li>occasional <code>keyboard</code> focused flows</li>
+        </ul>
+      </section>
+
+      <section>
+        <strong><code>Challenges</code> : </strong>
+        <ul>
+          <li>difficult to evolve inherited code: ad-hoc implementations, inconsistent patterns, un-documented logic, significant scale</li>
+          <li>implement <code>refactoring</code> strategies with version control, eventually covering all UI</li>
+          <li>enforce consistency and constraints</li>
+          <li>large data sets require optimizing for <code>performance</code> : async dropdowns, segmented with endless-scroll, server-side filtering</li>
+          <li>bridge design intent and technical implementation</li>
+          <li>push back when UX is technically flawed and propose alternatives that scale</li>
+        </ul>
+      </section>
+
+      <section class="stack-section">
+        <strong><code>Stack</code> : </strong>
+        <code>git</code>
+        <code>.NET</code>
+        <code>vscode</code>
+        <code>jQuery</code>
+        <code>kendo ui</code>
+        <code>figma</code>
+        <code>snowplow</code>
+        <code>cypress</code>
+        <code>signalR</code>
+      </section>
+    </div>
+
+    <div class="project-screens">
+      <ScreenCarousel year="2026" label="Advisor in 2026" shots={SHOTS_2026} />
+      <ScreenCarousel year="2025" label="Advisor, the new case workflow" shots={SHOTS_NCW} />
+      <ScreenCarousel year="2023" label="Advisor in 2023" shots={SHOTS_CLASSIC} start={9} />
+      <ScreenCarousel year="2018 — 2022" label="Advisor, the original interface" shots={SHOTS_OLDIES} laptop />
+    </div>
+  </div>
+</div>

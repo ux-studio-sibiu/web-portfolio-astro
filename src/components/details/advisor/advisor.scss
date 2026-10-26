@@ -1,0 +1,201 @@
+@use "@/styles/breakpoints" as *;
+
+// One scroller, not three. The pane already has a scroller of its own, so this
+// body gives the copy back to it as ordinary page content and holds the screens
+// still with `position: sticky` instead. The wheel then works from anywhere over
+// the pane, with the browser's own scrolling — inertia, smoothing, rubber-band
+// and all — and nothing has to be forwarded by hand.
+//
+// The frame gives up its gutter either way; it is built for prose, and this is
+// two columns to the edges.
+.detail-frame:has(.nsc-project-advisor) {
+  padding: 0;
+}
+
+// The bar belongs to the pane now rather than to a column, and it would sit on
+// the outer edge of the whole body. Hidden, as it was when the column owned it.
+.pane-scroll:has(.nsc-project-advisor) {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+// Own stylesheet, loaded with the component. Tokens come from globals, so the
+// detail body stays in step with the rest of the site.
+.nsc-project-advisor {
+  height: 100%;
+
+  .project-columns {
+    display: grid;
+    grid-template-columns: 1fr;
+
+    @include respond-to("desktop") {
+      // The proportion the old portfolio had: a fixed panel of copy against the
+      // screens filling everything left over.
+      grid-template-columns: minmax(20rem, 34%) 1fr;
+      // Not stretched: a grid item that fills its row cannot stick inside it.
+      align-items: start;
+    }
+  }
+
+  // --- Column 1: the copy -----------------------------------------------------
+
+  .project-copy {
+    // A deep head and foot: the column scrolls, so the copy starts below the fold
+    // of its own box and ends well before the bottom of it, which is what keeps
+    // the text off the edges of a panel that has no other chrome.
+    padding: 7.5rem var(--gutter) 8rem;
+
+  }
+
+  section {
+    margin: 0 0 2rem;
+  }
+
+  // A rule between one section and the next, the same weight as the one under
+  // the head: the panel is a long column of lists and they run together without
+  // something to say where one subject ends.
+  section + section {
+    padding-top: 1.75rem;
+    border-top: 2px solid var(--color-ink);
+  }
+
+  // Except the first one after the head, which already has a rule of its own a
+  // paragraph above it — two lines that close to each other would read as a
+  // mistake rather than as structure.
+  .intro + section {
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  // Prose and points in the mono at 0.8rem, the small-copy voice the index
+  // sets its entry points and blurb in — see the note in _devices.scss. Titles
+  // stay in Archivo, so the panel reads like an entry in the index.
+  p {
+    margin: 0 0 0.9rem;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    line-height: 1.6;
+  }
+
+  ul {
+    margin: 0.6rem 0 0;
+    padding-left: 1.1rem;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    line-height: 1.55;
+  }
+
+  li {
+    margin: 0 0 0.45rem;
+  }
+
+  // The device the whole panel is written in: a name, a tool or a term set apart
+  // from the sentence around it. Quiet — a tint and a little air, not a border —
+  // because a paragraph here can hold four of them.
+  code {
+    font-family: var(--font-mono);
+    // Same face as the text around it now, so the same size: 0.8125em was there
+    // to bring the mono down to Archivo, and would now shrink it a second time.
+    font-size: 1em;
+    background: var(--color-wash);
+    border-radius: 2px;
+    padding: 0.15em 0.4em;
+    white-space: nowrap;
+  }
+
+  // The head of the panel, set the way an entry in the index is set: the title
+  // in the page's own face at its own weight, the line under it in the mono
+  // label, and then the figures. The code chips start below the rule, where the
+  // detail starts.
+  .intro {
+    margin-bottom: 2.25rem;
+  }
+
+  .project-title {
+    margin: 0;
+    font-size: clamp(1.375rem, 2.4vw, 1.75rem);
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    font-weight: 700;
+  }
+
+  .project-role {
+    margin: 0.65rem 0 0;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  // How big the thing is, in three figures. Bold rather than set out in a table
+  // of their own: the panel is a column of prose and this is the one line in it
+  // that should be readable at a glance.
+  .project-scale {
+    margin: 1rem 0 0;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: var(--color-muted);
+
+    strong {
+      font-weight: 700;
+      color: var(--color-ink);
+    }
+  }
+
+  // The line the old layout had under its lede, kept: it is what separates what
+  // the product IS from what the work on it was.
+  .intro-rule {
+    margin: 1.25rem 0;
+    border: 0;
+    border-top: 2px solid var(--color-ink);
+  }
+
+  // The stack is a row of chips rather than a sentence, so it wraps as one.
+  .stack-section {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0;
+    padding-bottom: 1.25rem;
+  }
+
+  // --- Column 2: the screens --------------------------------------------------
+
+  // On the paper the rest of the site is set on: the frames carry their own
+  // black border and shadow, which is all the separation they need.
+  .project-screens {
+    display: grid;
+    grid-template-columns: 1fr;
+    column-gap: clamp(1rem, 2vw, 2.5rem);
+    row-gap: clamp(1.5rem, 2.5vw, 2.5rem);
+    // Centred in the column rather than hung from its top: the column is the
+    // height of the pane and the group is shorter than it, so the leftover room
+    // is split between them instead of all falling below.
+    align-content: center;
+    // Even top and bottom, or "centred" would be centred in a box that is not.
+    padding: 2.5rem clamp(1.5rem, 3vw, 3rem);
+
+    @include respond-to("tablet") {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    // Held still while the copy goes by: sticky against the pane's scroller, a
+    // screen tall, and cropping anything that does not fit rather than scrolling
+    // to it. That crop is the trade the layout makes.
+    @include respond-to("desktop") {
+      position: sticky;
+      top: 0;
+      height: 100svh;
+      overflow: hidden;
+    }
+  }
+
+
+}

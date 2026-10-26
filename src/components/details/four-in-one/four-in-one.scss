@@ -1,0 +1,110 @@
+@use "@/styles/breakpoints" as *;
+@use "@/styles/devices" as *;
+
+// One scroller, not two: the pane's own. The pictures are the tall half here,
+// so they are the half that flows, and the copy is held beside them with
+// `position: sticky` — the mirror of the Advisor body, where the copy is the
+// long one. Either way the wheel works from anywhere over the pane and the
+// browser does the scrolling itself.
+.detail-frame:has(.nsc-project-four-in-one) {
+  padding: 0;
+}
+
+// The bar would sit on the outer edge of the whole body now. Hidden, as it is
+// in the Advisor body.
+.pane-scroll:has(.nsc-project-four-in-one) {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.nsc-project-four-in-one {
+  height: 100%;
+
+  .project-columns {
+    display: grid;
+    grid-template-columns: 1fr;
+
+    @include respond-to("desktop") {
+      // The same proportion the Advisor body uses: a panel of copy against the
+      // pictures filling everything left over.
+      grid-template-columns: minmax(20rem, 34%) 1fr;
+      // Not stretched: a grid item that fills its row cannot stick inside it.
+      align-items: start;
+    }
+  }
+
+  // --- Column 1: the copy -----------------------------------------------------
+
+  .project-copy {
+    padding: 7.5rem var(--gutter) 8rem;
+
+    // Held beside the pictures rather than scrolling with them. No height of its
+    // own: on a short screen it simply scrolls away like anything else, which is
+    // better than a second scroller inside the first.
+    @include respond-to("desktop") {
+      position: sticky;
+      top: 0;
+    }
+  }
+
+  // .label is the shared micro-label out of globals; this only says where it
+  // sits. It replaced a lede set at 2rem — the body carries its own meta now,
+  // and a display sentence above it was saying the same thing twice.
+  .project-meta {
+    margin: 0 0 1.5rem;
+  }
+
+  // The same square-marked list every entry in the index uses — see the mixin
+  // in app/styles/_devices.scss. The prose paragraphs and the four-cell client
+  // table that were here said the same things at more length; the clients are
+  // the last point now.
+  .project-points {
+    @include entry-points;
+
+    max-width: 38rem;
+  }
+
+  // --- Column 2: the pictures -------------------------------------------------
+
+  // Stacked rather than laid out in a grid: they are three different shapes and
+  // one argument, read top to bottom. This is the column that makes the pane
+  // long, and it flows with it.
+  .project-shots {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(2rem, 4vw, 3.5rem);
+    padding: 7.5rem clamp(1.5rem, 3vw, 3rem) 8rem;
+
+  }
+
+  // The edge and the offset shadow every other piece of media on the site
+  // carries — the screen frames in the Advisor body, the thumbnails in the
+  // index. Same 3px and the same 3px/5px drop.
+  .shot {
+    margin: 0;
+
+    // The video at the foot of the column is framed exactly as the stills are,
+    // so the set reads as one sequence rather than as pictures and then a clip.
+    img,
+    video {
+      display: block;
+      width: 100%;
+      height: auto;
+      border: 3px solid var(--color-ink);
+      box-shadow: 3px 5px rgba(0, 0, 0, 0.33);
+    }
+
+    figcaption {
+      margin-top: 0.9rem;
+      font-family: var(--font-mono);
+      font-size: 0.6875rem;
+      letter-spacing: 0.12em;
+      text-transform: lowercase;
+      color: var(--color-ink);
+    }
+  }
+}

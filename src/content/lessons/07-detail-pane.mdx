@@ -1,0 +1,168 @@
+---
+number: 7
+title: The detail pane
+summary: Every project opens. Bodies are pre-rendered into <template>s and cloned in on open, which replaces next/dynamic with no chunks at all. Twelve iframe components become one Embed.astro, and the controller gets a state object and one render().
+---
+
+Click any thumbnail, View button or project name in the copy: the track slides, the detail pane
+comes over, the rail button turns into a back arrow and the rail shows the project's title. Back,
+Escape or the rail button slide it away again. Advisor's four screen stacks click through, and
+FourInOne's video plays.
+
+What's still missing is **history**: the browser's back button doesn't close the pane yet. That's lesson 08.
+
+## Lazy without JavaScript chunks: `<template>`
+
+In Next, `registry.ts` wrapped every detail body in `next/dynamic`. Each one was a separate JS chunk,
+fetched the first time its project was opened, so nothing (iframe, images, video) loaded up front.
+
+Astro renders everything at build time, so the bodies are rendered **into the page**, inside
+`<template>` elements:
+
+```astro
+{projects.map((entry) => (
+  <template data-detail={entry.id} data-rail-title={entry.data.railTitle ?? entry.data.title}>
+    <div class="detail-frame is-embed">
+      <DetailBody entry={entry} />
+    </div>
+  </template>
+))}
+```
+
+The content of a `<template>` is **parsed but inert**: it isn't rendered, its `<iframe>` doesn't
+load, its `<img>`s don't fetch and its `<video>` doesn't touch the network. Opening a project is one
+line:
+
+```ts
+this.#el.detailScroll.replaceChildren(template.content.cloneNode(true));
+```
+
+Only now do the iframe, the images and the video exist, and they start loading. On the test run, before
+anything was opened, the detail pane held no iframes and none of the forty Advisor screenshots had been
+requested. The one live iframe on the page is Paint's thumbnail in the Archive grid, as on the old site.
+
+The trade-off: every body's **HTML** is now in the page (about 35 kB of the 99 kB, mostly the Advisor
+carousels' `srcset`s), and every body's **CSS** is in the page stylesheet. The Next version fetched
+those per project. Neither costs a request, and lesson 12 measures what they cost in bytes.
+
+## The script-inside-a-template trap
+
+The screen carousel needs a custom element. The natural place for its `<script>` is
+`ScreenCarousel.astro`, but Astro writes a component's script **where the component is first rendered**,
+and carousels are only ever rendered **inside a `<template>`**. A `<script>` in a template is as inert as
+the rest of it: it never runs.
+
+So the definition is imported from `DetailPane.astro`, outside the templates:
+
+```astro
+<script>
+  import "@/components/screen-carousel/screen-carousel-element";
+</script>
+```
+
+`customElements.define` applies to elements added **later** too, so every `<nsc-screen-carousel>` cloned
+in on open is upgraded the moment it enters the page. The build check confirms no `<script>` ended
+up inside a template.
+
+## One `Embed.astro` instead of twelve components
+
+Twelve detail components (nine experiments plus casedeschise, clasa-zero and map) were the same `<div>`
+around an `<iframe>`, with four identical stylesheets. What differed per project was the URL, the iframe's
+`title` and its `allow`. Those are **data**, so they moved into the frontmatter:
+
+```yaml
+href: https://experiments-five-bice.vercel.app/3d-lighting-camera/
+embedAllow: camera            # the light study asks for the webcam
+```
+
+```yaml
+embedTitle: Casedeschise, live site   # when "<title>, live" isn't the wording
+```
+
+`DetailBody.astro` replaces `registry.ts`: a project with a body of its own (Advisor, FourInOne) gets
+it by slug, and any other `embed` gets `<Embed>`. Adding an embedded project is now **one `.mdx` file**.
+
+This is one of the internal restructurings the 1:1 rule allows. The rendered result is the same
+iframe with the same attributes, and the four `.nsc-…-embed` stylesheets became one `.nsc-embed`.
+
+## The controller: state in, DOM out
+
+`ShowcaseLinear` kept the pane in React state (`activeIndex`, `openIndex`) and let React work out the
+DOM. The controller keeps the same idea without React:
+
+```ts
+#state = { isDetail: false, open: null, section: null, lit: false };
+
+open(slug) { /* clone the template if it's a different project */ this.#state.isDetail = true; this.#render(); }
+close()    { this.#state.isDetail = false; this.#render(); }
+
+#render() {
+  el.track.classList.toggle("is-detail", isDetail);   // the CSS slide
+  el.indexPane.inert = isDetail;                       // unreachable while covered
+  el.detailPane.inert = !isDetail;
+  el.railProject.textContent = …;                      // the rail's title
+  el.railButton.innerHTML = isDetail ? BACK_ICON : MENU_ICON;
+  …
+}
+```
+
+- **One function writes the DOM.** Every handler changes the state and calls `render()`, so the
+  question "what does the page look like when a project is open?" has one answer, in one place.
+  React's model, kept on purpose.
+- **No diffing needed.** About a dozen things depend on the state, and `render()` names each one.
+  That's the trade: React works out what changed for you, and here you list it.
+- **`open` isn't cleared on close**, just as `openIndex` wasn't. The pane keeps its content and the rail
+  keeps the title during the slide back, so nothing blanks halfway across. Re-opening the same project
+  keeps it as it was: an iframe you navigated inside, or a carousel on its fifth shot.
+- **`inert`** is what made the old `inert={isDetail}` work, now set as a property: the covered pane leaves
+  the tab order and the accessibility tree, as well as the mouse's reach.
+- **One delegated listener** handles every `[data-open]`: 16 thumbnails, the View buttons and the names in
+  the Design Tooling and Archive copy, through `closest("[data-open]")`.
+
+`section` and `lit` are in the state already, set to their top-of-page values. Lesson 09's scroll
+sequence is what changes them.
+
+## The carousel: build-time URLs, run-time swaps
+
+The Advisor screenshots moved from `public/` to `src/assets/advisor/`, so they're optimised like every
+other picture. Two Astro/Vite features make that manageable:
+
+- **`import.meta.glob("@/assets/advisor/2026/*.jpg", { eager: true })`** imports a whole folder in one
+  line (forty separate imports would have been silly). Sorting the keys (file paths) keeps the numbered
+  order.
+- **`getImage()`** is the function behind `<Image>`: the same files, but it returns their URLs instead of an
+  `<img>`. A script that swaps pictures needs exactly that, so `ScreenCarousel.astro` computes every shot's
+  `src` and `srcset` at build time and hands them over as JSON in `data-shots`. The element's
+  `show(index)` only copies the next ones into the two `<img>`s.
+
+As before, only the current shot and the next are in the page, so the other eleven aren't requested
+until someone clicks that far.
+
+## Files in this lesson
+
+- `src/components/showcase/showcase-controller.ts`: state + `render()`, open/close, Escape, delegated `[data-open]`
+- `src/components/showcase/Showcase.astro`, `src/pages/index.astro`: pass the projects to the detail pane
+- `src/components/detail-pane/DetailPane.astro`: one `<template>` per project, and the carousel script
+- `src/components/detail-pane/DetailBody.astro`: replaces `registry.ts`
+- `src/components/embed/Embed.astro` + `embed.scss`: replaces twelve components and four stylesheets
+- `src/components/details/advisor/Advisor.astro` + `advisor.scss`
+- `src/components/details/four-in-one/FourInOne.astro` + `four-in-one.scss`
+- `src/components/screen-carousel/ScreenCarousel.astro`, `screen-carousel-element.ts` + `screen-carousel.scss` (`display: block` for the custom element)
+- `src/components/thumb/Thumb.astro`: optional `class`, and real `alt` for detail pictures
+- `src/content.config.ts`: `embedTitle`, `embedAllow`; and the entries that need them
+- `src/assets/advisor/**`: 41 screenshots, copied from `public/advisor/`; `src/assets/projects/4in1-1.jpg`, `4in1-2.jpg`
+- `public/advisor/oldies/laptop-mask.png`, `public/video/fnt.mp4`: copied as-is
+- `scripts/compare-markup.mjs`: ignores the templates (Next had no server markup for the bodies)
+- `src/content/lessons/07-detail-pane.mdx`: this page
+- `ROADMAP.md`: lesson 07 ticked
+
+## Review checklist
+
+- [ ] Every thumbnail, View button and name in the Tooling and Archive copy opens its project.
+- [ ] Back, Escape and the rail's arrow all close it, and the title stays in the rail during the slide out.
+- [ ] Open "GSAP, motion, 3d": the rail says "Demos", centred on the motion page's sidebar.
+- [ ] Advisor: click, right-click, the arrows, the bullets and the arrow keys all step the carousels, and Network shows only the shots you reach.
+- [ ] DevTools → Network on a fresh load: no request to any embedded site except Paint's thumbnail, and none for `fnt.mp4`.
+- [ ] With the pane open, Tab never lands on anything in the index; with it closed, never on anything in the pane.
+- [ ] The browser's back button does NOT close the pane yet (lesson 08).
+- [ ] `node scripts/compare-markup.mjs` still prints SAME ten times.

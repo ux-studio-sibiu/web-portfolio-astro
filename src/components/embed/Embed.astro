@@ -1,0 +1,28 @@
+---
+import type { Project } from "@/lib/projects";
+import "./embed.scss";
+
+// The detail body of every project that is a live site or experiment: its
+// `href`, full-bleed in an iframe. Replaces twelve one-line components in the
+// Next app (projects/experiments/*.tsx and three project folders) that
+// differed only in their URL, the iframe's title and its `allow`.
+//
+// Rendered into a <template> (see DetailPane.astro), so the iframe does not
+// exist — and loads nothing — until the project is opened. That is also why
+// `loading="lazy"` is now belt and braces rather than the thing doing the work.
+//
+// `embedAllow` per entry: "clipboard-write" delegates the clipboard to the
+// frame, so the tools' copy buttons work cross-origin (the Permissions Policy
+// default for it is `self`); "camera" lets the light study ask for the webcam,
+// which a cross-origin frame is refused without.
+interface Props {
+  entry: Project;
+}
+
+const { entry } = Astro.props;
+const { href, title, embedTitle, embedAllow } = entry.data;
+---
+
+<div class="nsc-embed">
+  <iframe src={href} title={embedTitle ?? `${title}, live`} loading="lazy" referrerpolicy="no-referrer-when-downgrade" allow={embedAllow}></iframe>
+</div>

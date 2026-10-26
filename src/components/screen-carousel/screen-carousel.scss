@@ -1,0 +1,219 @@
+// Geometry comes from the source images, so nothing here is a magic number:
+// a browser shot is 700x376 under a 13px bar on a 600x335 frame, and the laptop
+// mask is 700x435 with its screen cut out at 111,24 / 391x178 of that frame.
+// Everything is expressed as a ratio or a percentage of those, which is what
+// lets the whole thing scale with the column it lands in.
+.nsc-screen-carousel {
+  // The root is a custom element (<nsc-screen-carousel>) now, not a <div>, and
+  // an unknown element is inline until told otherwise.
+  display: block;
+
+  // The frame with the arrows laid over it. Positioned so they have something
+  // to centre against that is the screen and not the bullets under it.
+  .screen-stage {
+    position: relative;
+  }
+
+  // Navigation the way the photography gallery does it: not a button you can
+  // see, but a strip down each side of the screen where the POINTER becomes the
+  // arrow. The button is still a real button underneath — it is what keyboards
+  // and screen readers get — it simply has nothing to draw.
+  //
+  // The chevron is that gallery's own, at 64px against its 60-unit box, but
+  // solid black — fill and edge both — where theirs is white-filled to carry
+  // over a photograph. These sit on screenshots, which are mostly pale. The
+  // hotspot is its middle, and `pointer` is the fallback for anywhere the image
+  // is refused.
+  .screen-nav {
+    position: absolute;
+    top: 0;
+    z-index: 2;
+    width: 20%;
+    height: 100%;
+    padding: 0;
+    background: none;
+    border: 0;
+
+    &.prev {
+      left: 0;
+      cursor: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 60 60' fill='black' stroke='black' stroke-width='1' stroke-linejoin='round'><path d='M29 43l-3 3-16-16 16-16 3 3-13 13 13 13z'/></svg>") 32 32, pointer;
+    }
+
+    &.next {
+      right: 0;
+      // The same path turned over, the way the gallery it comes from does it.
+      cursor: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 60 60' fill='black' stroke='black' stroke-width='1' stroke-linejoin='round'><g transform='translate(60,0) scale(-1,1)'><path d='M29 43l-3 3-16-16 16-16 3 3-13 13 13 13z'/></g></svg>") 32 32, pointer;
+    }
+
+    // Nothing to see: the cursor is the whole of it. Kept in the markup rather
+    // than deleted so the shape lives in one place — the stylesheet draws the
+    // cursor from the same path.
+    svg {
+      display: none;
+    }
+
+    // Except to a keyboard, which cannot hover and needs to know where it is.
+    &:focus-visible {
+      outline: 2px solid var(--color-ink);
+      outline-offset: -2px;
+    }
+  }
+
+  .screen-frame {
+    position: relative;
+    display: block;
+    width: 100%;
+    padding: 0;
+    background: var(--color-bg);
+    border: 3px solid var(--color-ink);
+    box-shadow: 3px 5px rgba(0, 0, 0, 0.33);
+    cursor: pointer;
+    // The year tag hangs off the right edge, so the frame cannot clip — the
+    // wrap inside it is what holds the screen in.
+    overflow: visible;
+  }
+
+  .screen-wrap {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    // 600x335: the shot plus the bar above it.
+    aspect-ratio: 600 / 335;
+    overflow: hidden;
+    background: var(--color-bg);
+  }
+
+  // 13px of 335.
+  .browser-bar {
+    flex: 0 0 3.88%;
+    background: #fbfbfb;
+    border-bottom: 1px solid var(--color-faint);
+  }
+
+  .shot-box {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .shot {
+    object-fit: cover;
+    object-position: top center;
+  }
+
+  // Present only so the browser has it decoded before the next click. Not
+  // display:none — that would not fetch it.
+  .shot.next {
+    visibility: hidden;
+  }
+
+  // Rotated out of the right edge, the way the old portfolio dated each screen.
+  // Hung off the right edge of the frame, a fixed share of the way down it:
+  // both are proportions rather than lengths, so the tag keeps its place
+  // whatever size the column gives the frame. 13% is where the old portfolio
+  // put it — 45px down a 335px screen.
+  .year-tag {
+    position: absolute;
+    top: 13%;
+    left: 100%;
+    // Turned about its own top-left corner and then pushed back by its own
+    // height, which is what leaves the turned box to the RIGHT of that corner
+    // rather than lying over the screen it is labelling. Transforms read right
+    // to left, so the translate happens first.
+    transform: rotate(90deg) translateY(-100%);
+    transform-origin: left top;
+    padding: 0.2rem 0.45rem;
+    background: var(--color-ink);
+    color: var(--color-bg);
+    // The page's own face rather than the mono one. Four digits read sideways
+    // at label size is work enough without the letterforms making it harder.
+    font-size: 0.8125rem;
+    line-height: 1.1;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .bullets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+    margin-top: 0.9rem;
+  }
+
+  .bullet {
+    width: 0.5rem;
+    height: 0.5rem;
+    padding: 0;
+    background: var(--color-ink);
+    border: 0;
+    opacity: 0.25;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+
+    &:hover,
+    &:focus-visible {
+      opacity: 0.6;
+    }
+
+    &.is-active {
+      opacity: 1;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
+  }
+
+  // --- The vintage laptop ---------------------------------------------------
+  //
+  // No frame of its own: the mask PNG is the frame. The shot is placed in the
+  // cut-out behind it, as a percentage of the mask's own box — 111/700 across,
+  // 24/435 down, 391x178 of 700x435 — so it stays in the screen at any size.
+  &.laptop {
+    .screen-frame {
+      background: transparent;
+      border: 0;
+      box-shadow: none;
+    }
+
+    .screen-wrap {
+      aspect-ratio: 700 / 435;
+      background: transparent;
+    }
+
+    // The old frame was 600x335 with the mask drawn `contain` inside it, so the
+    // mask itself rendered 539x335 with 30.5px of slack either side. The screen
+    // was cut at 111,24 / 391x178 of THAT frame, so against the mask box it is
+    // (111-30.5)/539 across and 24/335 down — which is what these are. The
+    // result is 507x231, the exact ratio of the shots that go in it.
+    .shot-box {
+      position: absolute;
+      left: 14.94%;
+      top: 7.16%;
+      width: 72.53%;
+      height: 53.13%;
+      flex: none;
+    }
+
+    .shot {
+      object-fit: fill;
+    }
+
+    .laptop-mask {
+      position: absolute;
+      inset: 0;
+      background: url("/advisor/oldies/laptop-mask.png") center / contain no-repeat;
+      filter: grayscale(100%);
+      pointer-events: none;
+    }
+
+    // Against the screen cut-out's right edge rather than the mask's — 111 + 391
+    // of a 700-wide frame — so it labels the screen and not the plastic round it.
+    .year-tag {
+      top: 13%;
+      left: 90.7%;
+    }
+  }
+}

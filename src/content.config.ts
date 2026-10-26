@@ -69,8 +69,13 @@ const projects = defineCollection({
       thumbNode: z.enum(["radio", "randomize", "static", "fluid", "light-study", "motion", "data-viz"]).optional(),
 
       // Embeds fill the detail pane edge to edge; everything else gets padding.
+      // An embed's detail is its `href` in an iframe (Embed.astro).
       embed: z.boolean().default(false),
       href: z.string().url().optional(),
+      // The iframe's accessible title. Defaults to "<title>, live".
+      embedTitle: z.string().optional(),
+      // The iframe's `allow` (Permissions Policy), e.g. "camera".
+      embedAllow: z.string().optional(),
       // Replaces the wording on the entry's button.
       viewLabel: z.string().optional(),
     }),

@@ -1,5 +1,7 @@
 ---
+import type { Project } from "@/lib/projects";
 import TileReveal from "@/components/tile-reveal/TileReveal.astro";
+import DetailBody from "./DetailBody.astro";
 import "./detail-pane.scss";
 
 // Right pane of the track. Chrome is the back button and nothing else — the
@@ -7,8 +9,22 @@ import "./detail-pane.scss";
 // full-bleed iframe.
 //
 // Served closed and `inert`, so nothing in it can be focused or clicked while
-// it is off screen. Opening it (lesson 07) is a script's job: it clones the
-// project's <template> into .pane-scroll and lifts the `inert`.
+// it is off screen.
+//
+// Every project's body is rendered HERE, at build time, into a <template>. A
+// template's content is parsed but inert: its iframes do not load, its images
+// do not fetch, its video does not touch the network. Opening a project
+// (showcase-controller.ts) clones the one template into .pane-scroll, and only
+// then does any of it come alive. That is the job next/dynamic did in the Next
+// version — one chunk per project, fetched on first open — done with no
+// JavaScript chunks at all.
+//
+// The data the rail needs for the open project rides on the template too.
+interface Props {
+  projects: Project[];
+}
+
+const { projects } = Astro.props;
 ---
 
 <section class="showcase-pane detail-pane nsc-detail-pane" inert>
@@ -20,4 +36,23 @@ import "./detail-pane.scss";
 
   {/* Covers the frame for the length of the slide, then dissolves off it. Sits over the back button as well, so the pane arrives as one surface rather than a button floating on a grid. */}
   <TileReveal />
+
+  {projects.map((entry) => (
+    <template data-detail={entry.id} data-rail-title={entry.data.railTitle ?? entry.data.title} data-rail-top={entry.data.railTitleBox?.top} data-rail-height={entry.data.railTitleBox?.height}>
+      <div class:list={["detail-frame", { "is-embed": entry.data.embed }]}>
+        <DetailBody entry={entry} />
+      </div>
+    </template>
+  ))}
 </section>
+
+<script>
+  // The carousel's custom element is defined HERE and not in
+  // ScreenCarousel.astro, for a reason that is easy to trip over: Astro writes
+  // a component's <script> where that component is first rendered, and the
+  // carousels are only ever rendered inside a <template>. A <script> inside a
+  // template is as inert as everything else in it — it would never run. So the
+  // definition is loaded from out here, and every carousel cloned in later is
+  // upgraded the moment it lands in the page.
+  import "@/components/screen-carousel/screen-carousel-element";
+</script>

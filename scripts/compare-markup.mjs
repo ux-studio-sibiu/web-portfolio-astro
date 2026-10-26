@@ -59,6 +59,9 @@ const normalise = (html) =>
     .replace(/<img\b[^>]*>/g, describeImg)
     .replace(/<!--[\s\S]*?-->/g, "")
     .replace(/<script[\s\S]*?<\/script>/g, "")
+    // The detail bodies the port renders into <template>s up front. Next only
+    // rendered a body once its project was opened, so its server HTML has none.
+    .replace(/<template\b[\s\S]*?<\/template>/g, "")
     .replace(/\sdata-astro-cid-[a-z0-9]+(="")?/g, "")
     .replace(new RegExp(String.raw`\sdata-(${PORT_HOOKS.join("|")})="[^"]*"`, "g"), "")
     // Same markup, spelt differently: React writes boolean attributes as

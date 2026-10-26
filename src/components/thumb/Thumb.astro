@@ -18,15 +18,18 @@ import { blurStyle } from "@/lib/blur-placeholder";
 interface Props {
   src: ImageMetadata;
   sizes: string;
-  class: string;
+  class?: string;
+  // Empty by default: on the index a picture is decoration on a button that
+  // already says what it opens. A detail body passes real alt text.
+  alt?: string;
   "aria-hidden"?: "true";
 }
 
-const { src, sizes, class: className, "aria-hidden": ariaHidden } = Astro.props;
+const { src, sizes, class: className, alt = "", "aria-hidden": ariaHidden } = Astro.props;
 
 const CANDIDATES = [256, 384, 640, 750, 828, 1080, 1200, 1920];
 const widths = [...CANDIDATES.filter((w) => w < src.width), src.width];
 const style = await blurStyle(src);
 ---
 
-<Image src={src} alt="" sizes={sizes} widths={widths} class={className} style={style} aria-hidden={ariaHidden} />
+<Image src={src} alt={alt} sizes={sizes} widths={widths} class={className} style={style} aria-hidden={ariaHidden} />
