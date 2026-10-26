@@ -320,6 +320,13 @@
   // landscape, on a diagonal, so neither shape reads as the set's own and
   // neither row is the odd one.
   .various-entry {
+    // Not shown on phones: the Archive is the oldest work and the smallest
+    // frames, and below tablet the page is long enough without it. Its
+    // projects still have their /work/<slug>/ pages.
+    @include respond-to-max("tablet") {
+      display: none;
+    }
+
     // Flex, not the grid the other row uses, and for one reason: every frame
     // here is the SAME HEIGHT and its own width, which is the opposite of what a
     // grid does. Fixed columns would have had to take height off a landscape

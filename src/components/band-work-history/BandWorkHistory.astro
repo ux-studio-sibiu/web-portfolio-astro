@@ -152,5 +152,10 @@ const JUMP_LABEL = "view in projects";
         </div>
       </li>
     </ol>
+
+    {/* On phones the entries start CLOSED: open, the three of them make a very long first stretch of a page that is read on a small screen. CSS cannot decide whether a <details> is open, so this does it — `is:inline`, so it is left in the HTML exactly where it is and runs while the page is still being parsed, before the first paint: no flash of open entries closing. The one place in the port where that matters (lesson 06). Without JavaScript they stay open, which is the safe way round. */}
+    <script is:inline>
+      if (matchMedia("(max-width: 767.98px)").matches) document.currentScript.closest(".nsc-band-work-history").querySelectorAll("details[open]").forEach((d) => d.removeAttribute("open"));
+    </script>
   </div>
 </section>
