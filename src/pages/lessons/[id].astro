@@ -1,0 +1,25 @@
+---
+import { getCollection, render } from "astro:content";
+import LessonPage from "@/layouts/LessonPage.astro";
+
+// A dynamic route in a static site: Astro calls getStaticPaths at build time
+// and writes one HTML file per entry it returns. [id] in the file name is the
+// param each entry fills in.
+export async function getStaticPaths() {
+  // getCollection's order isn't guaranteed, so sort by the lesson number.
+  const lessons = (await getCollection("lessons")).sort((a, b) => a.data.number - b.data.number);
+  const link = (entry?: (typeof lessons)[number]) => entry && { href: `/lessons/${entry.id}/`, label: entry.data.title };
+
+  return lessons.map((lesson, i) => ({
+    params: { id: lesson.id },
+    props: { lesson, prev: link(lessons[i - 1]), next: link(lessons[i + 1]) },
+  }));
+}
+
+const { lesson, prev, next } = Astro.props;
+const { Content } = await render(lesson);
+---
+
+<LessonPage number={lesson.data.number} title={lesson.data.title} prev={prev} next={next}>
+  <Content />
+</LessonPage>

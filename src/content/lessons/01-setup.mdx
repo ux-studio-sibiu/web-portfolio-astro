@@ -1,0 +1,161 @@
+---
+number: 1
+title: Setup and the lesson layer
+summary: Astro 7 on Node 22, static output, the Base layout, and these lesson pages as an MDX content collection.
+---
+
+This site is now an Astro 7 project. There's nothing of the portfolio in it yet: the home page is a
+placeholder until lesson 03. What exists is the frame every later lesson builds on, plus the page
+you're reading. That page is itself a small Astro feature: an MDX file in a **content collection**,
+turned into HTML by a **dynamic route**.
+
+## What Astro is, in one paragraph
+
+Astro builds **HTML first**. A page is rendered at build time into a plain `.html` file, and by
+default **no JavaScript ships** at all. JS reaches the browser only when you ask for it: a `<script>`
+tag in a component (lesson 06), or a framework component marked with a `client:*` directive (an
+"island", lesson 11). Next.js starts from the opposite end: everything is React, and `"use client"`
+marks where it also runs in the browser. In the old portfolio that line sat at the very top
+(`ShowcaseLinear`), so the whole page hydrated.
+
+## Anatomy of an `.astro` file
+
+Open `src/layouts/Base.astro`. It has two parts:
+
+```astro
+---
+// Frontmatter: TypeScript that runs at BUILD time, in Node.
+interface Props { title: string }
+const { title } = Astro.props;
+---
+
+<!-- Template: HTML with {expressions}, sent to the browser as HTML. -->
+<title>{title}</title>
+<slot />
+```
+
+- **The fence (`---`) is the server/client boundary.** Code above it never reaches the browser. It
+  can read files, call APIs and import anything from npm, and it runs once per page per build.
+- **The template is close to JSX** (`{expr}`, `.map()`, `&&`), but it is HTML: `class`, not
+  `className`, and the output is a string, not a virtual DOM.
+- **`Astro.props`** are the attributes the component was called with. Typing them with a `Props`
+  interface gives you checking in the editor.
+- **`<slot />`** is where children go, like `{children}`. `Base` also has a **named** slot
+  (`<slot name="head" />`), which a page fills with `<meta slot="head" ... />`. Lesson 03 uses both.
+
+## Where things live
+
+| Astro | Next.js (old portfolio) |
+|---|---|
+| `astro.config.mjs` | `next.config.ts` |
+| `src/layouts/Base.astro` | `app/layout.tsx` |
+| `src/pages/index.astro` | `app/page.tsx` |
+| `src/pages/lessons/[id].astro` + `getStaticPaths()` | `app/lessons/[id]/page.tsx` + `generateStaticParams()` |
+| `src/content.config.ts` + `src/content/` | no equivalent (content lived in `page.tsx` props) |
+| `public/` | `public/` (copied as-is, same in both) |
+| `src/assets/` (lesson 04) | `app/assets/` imported for `next/image` |
+| `dist/` after `npm run build` | `.next/` |
+
+**Routing is file-based**, like the App Router, but the file *is* the page: `src/pages/lessons/index.astro`
+becomes `/lessons/`, and there are no `page.tsx` / `layout.tsx` naming rules. A layout is just a
+component the page wraps itself in.
+
+## Static output
+
+`astro.config.mjs` says `output: "static"`. `npm run build` writes one `.html` file per route into
+`dist/`, and that folder can be served by anything. There's no server and no adapter. Nothing in the
+portfolio needs one: it has no forms, no auth and no per-request data.
+
+## The lesson layer: a content collection
+
+The lessons are the first collection; projects become the second one in lesson 04.
+
+1. **`src/content.config.ts`** defines the `lessons` collection: a `glob()` loader that picks up
+   `src/content/lessons/*.mdx`, and a **Zod schema** for the frontmatter (`number`, `title`, `summary`).
+   A missing or mistyped field fails the build with a clear message.
+2. **`src/pages/lessons/[id].astro`** exports `getStaticPaths()`. At build time it loads the collection,
+   sorts it by `number` (collection order isn't guaranteed), and returns one `{ params, props }` per
+   lesson. Astro writes one page per entry. `props` also carries the prev/next links, because only the
+   route sees the whole list.
+3. **`render(entry)`** turns the MDX body into a `<Content />` component, which goes into the default
+   slot of `LessonPage.astro`.
+
+The entry `id` is the file name without the extension, so `01-setup.mdx` becomes `/lessons/01-setup/`.
+
+## Scoped styles: the first gotcha (G5)
+
+`LessonPage.astro` has a `<style>` tag. Astro **scopes** it: every element in that template gets a
+`data-astro-cid-*` attribute, and every selector is rewritten to require it. That's why the `h1`
+rule doesn't leak into other pages.
+
+The MDX body, though, is rendered by *another* component and only passes through the slot, so its
+`h2`, `table` and `code` tags don't get the attribute, and a plain `h2 { }` rule would miss them. The
+fix is `:global()` *inside* a scoped selector: `.body :global(h2)`. The `.body` part stays scoped, the
+`h2` doesn't. The same thing will matter for anything a script inserts into the page (lesson 07), and
+it's the reason the product will use imported `nsc-` SCSS files instead (lesson 02).
+
+## Astro 7 specifics worth knowing now
+
+Astro 7 shipped in June 2026. This lesson was checked against its upgrade guide, and these are the
+changes that matter for this port:
+
+- **Node 22.23+.** That's why Node was upgraded first. `package.json` has an `engines` field, so npm warns
+  on an older Node.
+- **Vite 8** is the bundler. That only matters if we write Vite config (lesson 02: Sass).
+- **The compiler is written in Rust and is stricter.** An unclosed tag is a build error, and invalid
+  nesting (a `<div>` inside a `<p>`) is **no longer auto-corrected**, so it ends up in the HTML exactly
+  as written. React would have warned about it.
+- **`compressHTML` defaults to `"jsx"`:** whitespace between inline tags is dropped, as in JSX.
+  `<Highlight>a</Highlight> <em>b</em>` keeps its space only if you write `{" "}`. The old portfolio is
+  JSX, so its copy already has that space where it needs one. That's the behaviour we want for a 1:1
+  port, but watch for it when copying prose with inline tags.
+- **Markdown uses Sätteri** instead of remark/rehype by default. We don't use remark plugins, so nothing
+  changes for us.
+
+## Configuration choices in this lesson
+
+- `devToolbar: { enabled: false }`: the toolbar sits at the bottom of the screen, where the rail's menu
+  button will be. That's the same reason the old `next.config.ts` moved Next's dev indicator.
+- The `@/*` path alias in `tsconfig.json` points at `src/`, matching the `@/` imports of the Next app.
+  Astro reads `tsconfig` paths itself, so no extra Vite config is needed.
+- Lesson pages pass `noindex` to `Base`. Lesson 14 also keeps them out of the sitemap.
+
+## Try it
+
+```bash
+npm run dev
+```
+
+Open `/lessons/` and then this page. Then:
+
+```bash
+npm run build
+```
+
+Look in `dist/`: an `index.html`, `lessons/index.html` and `lessons/01-setup/index.html`. Search
+`dist/` for `<script`: there are none. Zero JavaScript, by default.
+
+## Files in this lesson
+
+- `package.json`: Astro 7 + `@astrojs/mdx`, and `engines` set to Node 22.23+
+- `astro.config.mjs`: static output, MDX, dev toolbar off
+- `tsconfig.json`: Astro's strict preset + the `@/*` alias
+- `.gitignore`, `.vscode/extensions.json`
+- `public/icon.jpg`: the favicon, copied from `web-portfolio/app/icon.jpg`
+- `src/layouts/Base.astro`: `<html>`, `<head>`, title/description/noindex, a named `head` slot
+- `src/layouts/LessonPage.astro`: the lesson frame, with scoped styles and `:global()`
+- `src/content.config.ts`: the `lessons` collection
+- `src/content/lessons/01-setup.mdx`: this page
+- `src/pages/index.astro`: placeholder home
+- `src/pages/lessons/index.astro`: the lessons list
+- `src/pages/lessons/[id].astro`: one page per lesson via `getStaticPaths`
+- `ROADMAP.md`: lesson 01 ticked
+
+## Review checklist
+
+- [ ] `node -v` shows 22.23 or newer, and `npm install` gives no engine warnings.
+- [ ] `npm run dev` works: `/` shows the placeholder, `/lessons/` lists lesson 01, and the lesson page renders with its tables and code blocks styled.
+- [ ] `npm run build` succeeds, and `dist/` has the three HTML files and no `<script>` tags.
+- [ ] View source on a lesson page: `<meta name="robots" content="noindex">` is there, and so are the `data-astro-cid-*` attributes on the frame but not on the MDX body.
+- [ ] Remove `:global()` from one rule in `LessonPage.astro` and watch it stop applying, then put it back.
+- [ ] Add a wrong type to the frontmatter here (e.g. `number: "one"`) and read the build error, then revert it.

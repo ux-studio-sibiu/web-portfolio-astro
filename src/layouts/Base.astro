@@ -1,0 +1,28 @@
+---
+// Everything between the --- fences runs at BUILD time, in Node, once per page.
+// None of it reaches the browser. The template below it is the HTML that does.
+interface Props {
+  title: string;
+  description?: string;
+  // Lesson pages are for us, not for search engines.
+  noindex?: boolean;
+}
+
+const { title, description, noindex = false } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    {description && <meta name="description" content={description} />}
+    {noindex && <meta name="robots" content="noindex" />}
+    <link rel="icon" href="/icon.jpg" type="image/jpeg" />
+    <slot name="head" />
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>

@@ -8,7 +8,7 @@ Like `data-viz`, the lessons don't build separate demos: they all grow **one pro
 Each lesson also adds its own lesson page (`/lessons/NN-...`) that explains the concepts, compares them
 with what the Next.js version did, and ends with "Files in this lesson" and a "Review checklist".
 
-> Status: **plan only**. Nothing is implemented yet. Decisions are settled in section 6.
+> Status: lesson 01 done. Decisions are settled in section 6.
 
 ---
 
@@ -55,7 +55,7 @@ About 9,200 lines of TSX + SCSS. The SCSS ports almost unchanged. The TSX is whe
 | Images | `astro:assets` `<Image>`/`<Picture>` (AVIF + WebP, `sizes` as today). Advisor screenshots move from `public/` into `src/assets/` so they get optimized too. | Same features as `next/image`, minus the blur placeholder (G4). |
 | Fonts | Astro's **Fonts API** (Archivo with `latin` + `latin-ext`, JetBrains Mono), with CSS variables `--font-archivo` / `--font-jetbrains-mono` kept | Self-hosted fonts with a metric-matched fallback, like `next/font`. Fontsource is the fallback option if the API doesn't fit. |
 | GSAP | Copied usage, plain `gsap` + `ScrollTrigger` npm packages (no `@gsap/react`), and `gsap.matchMedia()` for breakpoint and reduced-motion gating | Same behaviour. `useGSAP`'s cleanup becomes `mm.revert()` / `disconnectedCallback`. |
-| Lessons | A second content collection `src/content/lessons/*.mdx` + a `LessonPage` layout at `/lessons/[slug]` (`getStaticPaths`). They're `noindex` and left out of the sitemap. | The lesson layer teaches collections and dynamic routes itself. MDX lets a lesson import and run a live product component ("show me"). |
+| Lessons | A content collection `src/content/lessons/*.mdx` + a `LessonPage` layout at `/lessons/[id]` (`getStaticPaths`). They're `noindex` and left out of the sitemap. | The lesson layer teaches collections and dynamic routes itself. MDX lets a lesson import and run a live product component ("show me"). |
 | Shared tools | Anything reused from another repo is **copied in**, never linked (workspace rule) | |
 | Assets | **Copied** from `../web-portfolio`, only what's referenced, in the lesson that first needs it. Nothing in the Next repo is moved or deleted. | Workspace rule on files you didn't create. |
 
@@ -88,7 +88,7 @@ web-portfolio-astro/
     pages/
       index.astro           the portfolio
       work/[slug].astro     shareable per-project page (lesson 13)
-      lessons/[...slug].astro
+      lessons/[id].astro
       lessons/index.astro
   public/                   cv/*.pdf, video/fnt.mp4, radio/static.gif, patterns/*.svg
 ```
@@ -186,7 +186,7 @@ what the lesson page explains (always with a **Next.js → Astro** comparison ta
 
 | # | Lesson | Product change | Concepts |
 |---|---|---|---|
-| 01 | Setup + the lesson layer | `npm create astro`, TS strict, `astro.config`, `Base` layout, lessons collection, `LessonPage`, `/lessons` index, placeholder home | Anatomy of a `.astro` file (frontmatter = build time, template = HTML), file-based routing, static output, `getStaticPaths` for the lesson pages, why Astro ships zero JS by default |
+| 01 | Setup + the lesson layer ✓ | `npm create astro`, TS strict, `astro.config`, `Base` layout, lessons collection, `LessonPage`, `/lessons` index, placeholder home | Anatomy of a `.astro` file (frontmatter = build time, template = HTML), file-based routing, static output, `getStaticPaths` for the lesson pages, why Astro ships zero JS by default |
 | 02 | Styles, tokens, fonts | `globals.scss` + partials copied, `additionalData` for mixins, Fonts API (Archivo + latin-ext, JetBrains Mono), meta + viewport copied as-is | Scoped vs imported vs `is:global` styles, `class:list`, `define:vars` in `<style>`, font fallback metrics (G9, G12) |
 | 03 | The shell + text-only bands | Two-pane track, fixed column (identity + blurb), `.pane-scroll` with columns 2–3, detail-pane frame (closed), plus Core technologies, Work history, Skills and Contact as plain `.astro` (CV links to `public/cv`), all with no JS | Components, `Astro.props` with a typed `Props` interface, default and **named slots**, slot fallbacks, `Astro.slots.has`, `.map()` and conditionals in templates, fragments, `set:html` (and when not to) |
 | 04 | Projects as a content collection | `projects` collection + Zod schema, one `.mdx` per entry, `<Highlight>` in MDX, thumbs copied into `src/assets` | Content layer, `glob()` loader, `image()` in schemas, `getCollection` + sorting, `render()` → `<Content />`, MDX components mapping. **G1: why not children props.** |

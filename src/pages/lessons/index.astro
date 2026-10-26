@@ -1,0 +1,66 @@
+---
+import { getCollection } from "astro:content";
+import Base from "@/layouts/Base.astro";
+
+const lessons = (await getCollection("lessons")).sort((a, b) => a.data.number - b.data.number);
+---
+
+<Base title="Lessons — porting the portfolio to Astro" noindex>
+  <main class="nsc-lessons-index">
+    <p class="eyebrow"><a href="/">Portfolio</a></p>
+    <h1>Lessons</h1>
+    <p class="intro">The Next.js portfolio rebuilt in Astro, one reviewable lesson at a time. The full plan is in <code>ROADMAP.md</code>.</p>
+
+    <ol class="list">
+      {lessons.map((lesson) => (
+        <li>
+          <a href={`/lessons/${lesson.id}/`}>
+            <span class="number">{String(lesson.data.number).padStart(2, "0")}</span>
+            <span class="title">{lesson.data.title}</span>
+          </a>
+          <p class="summary">{lesson.data.summary}</p>
+        </li>
+      ))}
+    </ol>
+  </main>
+</Base>
+
+<style>
+  .nsc-lessons-index {
+    max-width: 46rem;
+    margin: 0 auto;
+    padding: 3rem 1rem 5rem;
+    font-family: system-ui, sans-serif;
+    line-height: 1.6;
+  }
+
+  .eyebrow {
+    font-size: 0.875rem;
+    color: #666;
+  }
+
+  .list {
+    padding: 0;
+    list-style: none;
+  }
+
+  .list li {
+    padding: 1rem 0;
+    border-top: 1px solid #ddd;
+  }
+
+  .number {
+    margin-right: 0.75rem;
+    font-variant-numeric: tabular-nums;
+    color: #666;
+  }
+
+  .title {
+    font-weight: 600;
+  }
+
+  .summary {
+    margin: 0.25rem 0 0;
+    color: #444;
+  }
+</style>

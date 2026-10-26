@@ -1,0 +1,118 @@
+---
+import Base from "@/layouts/Base.astro";
+
+// The frame every lesson page shares. The lesson's MDX body arrives in the
+// default slot; prev/next come from the route, which knows the whole list.
+interface Props {
+  number: number;
+  title: string;
+  prev?: { href: string; label: string };
+  next?: { href: string; label: string };
+}
+
+const { number, title, prev, next } = Astro.props;
+const eyebrow = `Lesson ${String(number).padStart(2, "0")}`;
+---
+
+<Base title={`${eyebrow} — ${title}`} noindex>
+  <article class="nsc-lesson">
+    <nav class="crumbs"><a href="/lessons/">Lessons</a> · <a href="/">Portfolio</a></nav>
+    <p class="eyebrow">{eyebrow}</p>
+    <h1>{title}</h1>
+
+    <div class="body">
+      <slot />
+    </div>
+
+    <nav class="pager">
+      {prev ? <a href={prev.href} class="prev">&larr; {prev.label}</a> : <span />}
+      {next && <a href={next.href} class="next">{next.label} &rarr;</a>}
+    </nav>
+  </article>
+</Base>
+
+<style>
+  /* Scoped: Astro rewrites these selectors to only match elements written in
+     THIS template (they get a data-astro-cid-* attribute). The MDX body is
+     rendered by another component and comes in through the slot, so its tags
+     do not carry that attribute. That is why everything inside .body is
+     reached with :global(): the .body part stays scoped, the rest does not. */
+  .nsc-lesson {
+    --ink: #111;
+    --muted: #666;
+    --line: #ddd;
+    --wash: #f4f4f2;
+
+    max-width: 46rem;
+    margin: 0 auto;
+    padding: 3rem 1rem 5rem;
+    font-family: system-ui, sans-serif;
+    line-height: 1.6;
+    color: var(--ink);
+  }
+
+  .crumbs {
+    font-size: 0.875rem;
+    color: var(--muted);
+  }
+
+  .eyebrow {
+    margin: 2rem 0 0;
+    font-size: 0.875rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  h1 {
+    margin: 0.25rem 0 2rem;
+    line-height: 1.15;
+  }
+
+  .body :global(h2) {
+    margin-top: 2.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line);
+  }
+
+  .body :global(code) {
+    padding: 0.1em 0.3em;
+    font-size: 0.9em;
+    background: var(--wash);
+    border-radius: 3px;
+  }
+
+  .body :global(pre) {
+    padding: 1rem;
+    overflow-x: auto;
+    border-radius: 4px;
+  }
+
+  .body :global(pre code) {
+    padding: 0;
+    background: none;
+  }
+
+  .body :global(table) {
+    width: 100%;
+    margin: 1rem 0;
+    border-collapse: collapse;
+    font-size: 0.9375rem;
+  }
+
+  .body :global(th),
+  .body :global(td) {
+    padding: 0.4rem 0.6rem;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .pager {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line);
+  }
+</style>
