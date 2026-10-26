@@ -1,0 +1,153 @@
+---
+number: 13
+title: Deep links
+summary: Every project has a real URL, /work/<slug>/, built as the whole portfolio with that project already open in the HTML. Opening a project puts it in the address bar, Back closes, Forward reopens, and a shared link arrives open with the project's own title and description.
+---
+
+Until now, opening a project changed nothing in the address bar. You couldn't link to one, a reload
+lost it, and Forward didn't bring it back. Now:
+
+- opening **Accounting platform** puts **`/work/advisor/`** in the address bar, and the tab is titled
+  "Accounting platform — Razvan Turcanu";
+- **Back** closes it and the URL returns to `/`; **Forward** opens it again;
+- loading **`/work/advisor/`** directly (a shared link, a reload, a bookmark) shows the portfolio with
+  Advisor **already open**, with no flash of the index and no slide;
+- from there, **Back** lands on the index, in the same page, instead of leaving the site.
+
+## Why `/work/<slug>/` and not `?project=<slug>`
+
+The roadmap said `?project=slug`, a query string read by the script. A real path is better here, for
+one reason: **a query string can't change what the server sends**. `/?project=advisor` is the index page;
+its `<title>`, its description and (in lesson 14) its preview image are the index's. Anything that reads
+the HTML without running scripts (a link preview in Slack, a search crawler) would see the index.
+
+`/work/advisor/` is a **page of its own**, built at build time, so its HTML can carry everything about
+the project.
+
+## Sixteen more pages, one component
+
+The page moved from `index.astro` into `src/components/home/Home.astro`, with one prop:
+
+```astro
+<!-- src/pages/index.astro -->
+<Home />
+
+<!-- src/pages/work/[slug].astro -->
+---
+export async function getStaticPaths() {
+  const projects = await getProjects();
+  return projects.map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
+}
+const { entry } = Astro.props;
+---
+<Home open={entry} />
+```
+
+`getStaticPaths` is the same as for the lesson pages (lesson 01), with one difference: it passes the
+**whole entry as a prop**, so the page doesn't look it up again. The 16 project pages took the build from
+14 pages to 30 (31 with this lesson's own page).
+
+## Served open: the state, in the HTML
+
+With `open`, every component renders the state the controller's `render()` would otherwise produce:
+
+| Where | Index (`/`) | `/work/advisor/` |
+|---|---|---|
+| `.showcase-track` | | `is-detail`: the pane is over |
+| `.index-pane` | | `inert` |
+| `.nsc-detail-pane` | `inert` | not inert, and **Advisor's body already in `.pane-scroll`** |
+| the rail | no title | `is-detail`, "Accounting platform" active (anchored for motion) |
+| the rail button | menu, `data-mode="menu"` | back arrow, `data-mode="back"` |
+| `<title>`, `<meta name="description">` | the portfolio's | the project's |
+
+The page needs **no script** to show the project: the first paint is already right, which is lesson
+06's "state before JavaScript" (G8) applied to a whole state. The track's CSS transition doesn't run
+either, because the class is there from the start rather than added.
+
+When the controller starts, it reads `data-open="advisor"` off `<nsc-showcase>` and sets its state to
+match the page. Its first `render()` then finds nothing to change: the button's `data-mode` already says
+"back", so it isn't even rebuilt.
+
+`DetailFrame.astro` (the frame plus the body) is now rendered in two places: inside every `<template>`, and
+straight into the pane for the open project.
+
+## The history, driven by the URL
+
+`pane-history.ts` gained a URL and two new moves:
+
+```ts
+push(slug, url)       // opening from the page: pushState({ project }, "", "/work/advisor/")
+adopt(slug, "/")      // arriving on /work/advisor/: rewrite this entry to "/", push the project on top
+resume()              // Forward brought a project back: remember the entry before it
+```
+
+**`adopt`** solves the problem lesson 08 flagged: a page that *starts* with a project open has no entry
+before it, so closing would leave the site. `replaceState` rewrites the arrival entry's URL to `/` (same
+document, nothing reloads), and `pushState` puts `/work/advisor/` back on top. The history is then exactly
+what it would have been if you'd come in through the index and clicked.
+
+And the `popstate` handler now reads the **URL**:
+
+```ts
+#onPopState = () => {
+  const slug = slugFromPath(location.pathname);   // "/work/advisor/" → "advisor"
+  if (slug) { this.#show(slug); this.#history.resume(); return; }   // Forward: reopen
+  /* otherwise close */
+};
+```
+
+The rule from lesson 08 still holds ("the pane follows the history, never the other way round"), but
+now the history carries enough to reopen as well as close. Forward reopening was the one behaviour the
+1:1 port had kept missing.
+
+`document.title` follows too: `render()` sets it from the template's `data-page-title` while a project is
+open, and back to the portfolio's title when it closes (also on a `/work/…` page, whose own `<title>` is the
+project's).
+
+## A trap avoided: build-time modules in a browser script
+
+`projectPath()` and `slugFromPath()` are needed by the build (to make the URLs) **and** by the browser (to
+push and read them). They first sat in `src/lib/projects.ts`, which imports `astro:content`, a module that
+exists **only at build time**. Importing it into a client script would drag build-only code into the
+bundle, or fail. So they live in `src/lib/paths.ts`, which has no imports at all, and both sides use it.
+A grep of the built `Showcase` bundle confirms no `astro:content` in it.
+
+## Tested in the browser
+
+| Scenario | Result |
+|---|---|
+| Open Advisor from `/` | URL `/work/advisor/`, tab title "Accounting platform — Razvan Turcanu" |
+| Back | `/`, pane closed, title back to the portfolio's |
+| Forward | `/work/advisor/`, pane open again |
+| Rail's arrow | `/`, same document (a marker on `window` survived) |
+| Load `/work/motion/` directly | already open, iframe present, index `inert`, "Demos" anchored on the rail |
+| …then Back | `/`, pane closed, **same document**: no reload, no leaving the site |
+| …then open White-label, then its Back button | `/work/four-in-one/`, then `/` |
+| Load `/work/paint/`, let the embed navigate twice, then close | `/`, closed in one step |
+
+## Files in this lesson
+
+- `src/components/home/Home.astro`: the page, with an optional `open`
+- `src/pages/index.astro`: now just `<Home />`
+- `src/pages/work/[slug].astro`: one page per project via `getStaticPaths`
+- `src/lib/paths.ts`: `projectPath()`, `slugFromPath()`, browser-safe
+- `src/lib/projects.ts`: `HOME_TITLE`, `projectTitle()`, `summaryText()` (the description, with fallbacks)
+- `src/layouts/Portfolio.astro`: the default title from `HOME_TITLE`
+- `src/components/showcase/Showcase.astro`: `open`, `data-open`, `data-home-title`, the open track and `inert`
+- `src/components/detail-pane/DetailPane.astro`, `DetailFrame.astro`: the open body served in the pane; `data-page-title` on templates
+- `src/components/section-rail/SectionRail.astro`, `src/components/rail-button/RailButton.astro`: served in the open state
+- `src/components/showcase/pane-history.ts`: URLs, `adopt()`, `resume()`
+- `src/components/showcase/showcase-controller.ts`: `#show()`, arrival, URL-driven `popstate`, `document.title`
+- `scripts/compare-markup.mjs`: `data-mode` ignored as a port hook
+- `src/content/lessons/13-deep-links.mdx`: this page
+- `ROADMAP.md`: lesson 13 ticked
+
+## Review checklist
+
+- [ ] Open a few projects: the address bar shows `/work/<slug>/` and the tab title changes.
+- [ ] Back closes, Forward reopens, and the title follows both.
+- [ ] Paste `/work/four-in-one/` into a new tab: White-label is open immediately, with no slide and no index flash.
+- [ ] From there, Back shows the index, and Back again leaves to wherever you came from.
+- [ ] View source on `/work/advisor/`: its own `<title>` and description, and the body already in the pane.
+- [ ] Reload while a project is open: it stays open.
+- [ ] `node scripts/compare-markup.mjs` still prints SAME ten times for `/`.

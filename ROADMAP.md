@@ -8,7 +8,7 @@ Like `data-viz`, the lessons don't build separate demos: they all grow **one pro
 Each lesson also adds its own lesson page (`/lessons/NN-...`) that explains the concepts, compares them
 with what the Next.js version did, and ends with "Files in this lesson" and a "Review checklist".
 
-> Status: lessons 01–12 done. Decisions are settled in section 6.
+> Status: lessons 01–13 done. Decisions are settled in section 6.
 
 ---
 
@@ -102,8 +102,9 @@ Structure changes compared with the Next app:
    frontmatter. Only `advisor` and `four-in-one` keep a component of their own.
 3. **Shell logic is split by concern** into small modules (history, scroll sequence, wheel
    forwarding, menu) instead of one 490-line component.
-4. **Deep links (lesson 13):** `?project=slug` opens a project on load, and `/work/slug/` exists as a
-   real page. Today there's no way to link to one project.
+4. **Deep links (lesson 13):** every project has a real page, `/work/slug/`, served with the project
+   open; opening a project puts that URL in the address bar. (The plan said `?project=slug`; a path won
+   because only a page of its own can carry the project's title and description in its HTML.)
 
 ---
 
@@ -144,7 +145,7 @@ Structure changes compared with the Next app:
   ownership, ResizeObserver → `ScrollTrigger.refresh()`) ports as-is, and it's the most fragile code.
   It gets a lesson of its own (09).
 - **G7 — History with iframes.** The Navigation API / `history.go(-n)` logic exists because iframes push
-  joint history entries. It ports unchanged. Adding `?project=` deep links has to keep that "close in
+  joint history entries. It ports unchanged. Adding deep links (lesson 13) has to keep that "close in
   one step" behaviour, and that's the part to review most carefully in lesson 08.
 - **G8 — Initial state before JS.** No hydration means the HTML has to look right before scripts run:
   `--identity-fade: 1`, the rail unlit, the pane closed, the highlight finished under reduced motion.
@@ -198,7 +199,7 @@ what the lesson page explains (always with a **Next.js → Astro** comparison ta
 | 10 | GSAP ✓ | Band thumb slides (GSAP bodies extracted verbatim from the Next components), elastic line, tile reveal, run line, `ResizeObserver` → coalesced `ScrollTrigger.refresh()`, `src/scripts/gsap.ts` shared chunk. 29 scroll positions × 19 values identical to the Next build | npm libs in client scripts, `ScrollTrigger` with a custom `scroller`, `gsap.matchMedia` for breakpoints and reduced motion, cleanup without `useGSAP` |
 | 11 | Live thumbs + cursor card ✓ | Static noise, fluid WebGL and data-viz canvases (extracted verbatim, dynamic `import()` via `when-visible.ts`), one `data-card`-driven cursor card (identical markup to Next), and the detail-pane CSS-order fix (pane styles imported first). React-island demo left out | Dynamic `import()` on visibility as a hand-made `client:visible`. Optional lesson-page section: the same thumb as a **React island** with `client:load` / `client:visible` / `client:idle`, compared on bytes and timing (not part of the product) |
 | 12 | Performance + first improvements ✓ | Measured vs Next (first load 398 → ≈191 kB, JS 198 → 52 kB gzip). Embed preloading ported, Paint still (Chrome headless), AVIF via `<Picture>`, lazy TV, video poster, latin-only font preload, viewport fix (G10), `INTENDED` diffs in the compare script. Not done: video re-encode (no ffmpeg), `fetchpriority` (LCP is text), blur weight (a design call) | `astro build` + `preview`, reading `dist/`, bundle visualizer, Lighthouse/WebPageTest, before/after against the Next build |
-| 13 | Deep links | `?project=slug` opens a project on load (still closing in one step, G7), `/work/[slug]/` pages | `getStaticPaths` with props, reading the URL on load, keeping history consistent when the page starts with a project open |
+| 13 | Deep links ✓ | `/work/[slug]/` instead of `?project=` (the HTML can carry the project's title and description): each is the whole portfolio with the project served open; opening pushes that URL, Back closes, Forward reopens, arrival `adopt()`s an index entry, still closing in one step (G7) | `getStaticPaths` with props, reading the URL on load, keeping history consistent when the page starts with a project open |
 | 14 | Ship it | OG/meta per page, sitemap (lessons excluded), robots, 404, Vercel deploy, README | Integrations, `Astro.site` / canonical URLs, deploying static output |
 
 Possible extras after 14: View Transitions (`<ClientRouter />`) between `/` and `/work/slug`, the

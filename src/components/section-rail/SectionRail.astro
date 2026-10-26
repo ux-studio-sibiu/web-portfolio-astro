@@ -15,18 +15,26 @@ import "./section-rail.scss";
 // them off the bands' `data-section` attributes and adds one <span> each, so
 // nothing here needs updating when a band is added. The last span is the open
 // project's title (lesson 07).
+//
+// `project`, on a /work/<slug>/ page, is the one open on arrival: the rail is
+// served showing its title, and the button as the way back (lesson 13).
+interface Props {
+  project?: { title: string; box?: { top: number; height: number } };
+}
+
+const { project } = Astro.props;
 ---
 
-<div class="nsc-section-rail">
+<div class:list={["nsc-section-rail", { "is-detail": project }]}>
   {/* Everything that fades with the fixed column, and nothing that does not. The button is outside it deliberately: it is the only way into the nav, so it is there on the first screen and on the last. */}
   <div class="rail-body">
     <span class="rail-ink"></span>
 
     {/* Decorative: the rotated titles say what the scroll already says. The hiding stops at this box — a focusable control inside an aria-hidden subtree is a control screen readers cannot reach. */}
     <div class="section-stack" aria-hidden="true">
-      <span class="rail-section"></span>
+      <span class:list={["rail-section", { "is-active": project, "is-anchored": project?.box }]} style={project?.box ? { "--rail-project-top": `${project.box.top}px`, "--rail-project-height": `${project.box.height}px` } : undefined}>{project?.title}</span>
     </div>
   </div>
 
-  <RailButton />
+  <RailButton mode={project ? "back" : "menu"} />
 </div>

@@ -1,6 +1,7 @@
 ---
 import { Font } from "astro:assets";
 import Base from "@/layouts/Base.astro";
+import { HOME_TITLE } from "@/lib/projects";
 // An import in the frontmatter puts this CSS on every page that USES this
 // layout, and only those. globals.scss locks the body (`overflow: hidden`, the
 // shell scrolls itself), so it must not reach the lesson pages, which use Base
@@ -13,7 +14,7 @@ interface Props {
 }
 
 const {
-  title = "Razvan Turcanu — Frontend Developer",
+  title = HOME_TITLE,
   description = "Selected work by a frontend developer building fast, functional interfaces.",
 } = Astro.props;
 

@@ -1,0 +1,21 @@
+---
+import Home from "@/components/home/Home.astro";
+import { getProjects } from "@/lib/projects";
+
+// One page per project: /work/advisor/, /work/motion/, … Each is the whole
+// portfolio with that project already open, so a link to it shows the project
+// on arrival — no flash of the index, no slide — and carries the project's own
+// title and description. Opening a project on `/` puts the same URL in the
+// address bar (showcase-controller.ts), so what a visitor copies is this page.
+//
+// `getStaticPaths` again (lesson 01), this time passing the whole entry as a
+// prop, so the page does not have to look it up a second time.
+export async function getStaticPaths() {
+  const projects = await getProjects();
+  return projects.map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+---
+
+<Home open={entry} />

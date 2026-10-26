@@ -43,7 +43,7 @@
   summary: Measuring against the Next build, embed preloading, stills instead of live iframe thumbnails, the video, AVIF, and the viewport fix.
 - id: "13"
   title: Deep links
-  summary: "?project=slug opens a project on load, and /work/[slug]/ pages for sharing, with history still closing in one step."
+  summary: Every project at /work/<slug>/, served open, with Back, Forward and reload all behaving.
 - id: "14"
   title: Ship it
   summary: Meta and OG per page, sitemap, robots, 404, the Vercel deploy and a README.

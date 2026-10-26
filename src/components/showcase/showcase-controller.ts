@@ -6,6 +6,7 @@ import { ScrollTrigger } from "@/scripts/gsap";
 import { elasticLine } from "@/components/elastic-line/elastic-line";
 import { playTileReveal } from "@/components/tile-reveal/tile-reveal";
 import { preloadEmbedsIn } from "@/scripts/embed-preload";
+import { projectPath, slugFromPath } from "@/lib/paths";
 
 // <nsc-showcase>: the behaviour of the shell, as a custom element wrapped
 // around its markup. It is where ShowcaseLinear's React state went — not into
@@ -116,6 +117,17 @@ class Showcase extends HTMLElement {
 
     this.#buildSections();
 
+    // A /work/<slug>/ page arrives with that project already open — served
+    // open, in the HTML (lesson 13). The state is set to match what is on the
+    // page, so the render() below changes nothing, and the history is given an
+    // index entry to go back to.
+    const arrived = this.dataset.open;
+    if (arrived && this.#template(arrived)) {
+      this.#state.open = arrived;
+      this.#state.isDetail = true;
+      this.#history.adopt(arrived, "/");
+    }
+
     const column = el.indexPane.querySelector<HTMLElement>(".pane-fixed")!;
     const stopSequence = scrollSequence({
       shell: this.querySelector(".nsc-showcase-linear")!,
@@ -197,21 +209,8 @@ class Showcase extends HTMLElement {
   // slid over. Cloning is what makes the body real — until now its iframe,
   // images and video were inert template content that had fetched nothing.
   open(slug: string) {
-    const template = this.#el.detailPane.querySelector<HTMLTemplateElement>(`template[data-detail="${CSS.escape(slug)}"]`);
-    if (!template) return;
-
-    // Re-opening the project that is already in the pane keeps it as it is —
-    // an iframe that has been navigated inside, a carousel on its fifth shot.
-    if (this.#state.open !== slug) this.#el.detailScroll.replaceChildren(template.content.cloneNode(true));
-
-    if (!this.#state.isDetail) {
-      this.#history.push(slug);
-      // Covers the frame for the length of the slide, then dissolves off it.
-      this.#stopReveal = playTileReveal(this.#el.detailPane.querySelector(".nsc-tile-reveal")!);
-    }
-    this.#state.open = slug;
-    this.#state.isDetail = true;
-    this.#render();
+    if (this.#state.isDetail || !this.#show(slug)) return;
+    this.#history.push(slug, projectPath(slug));
   }
 
   // Asks to close the pane. It does not close it here: it moves the history
@@ -221,14 +220,45 @@ class Showcase extends HTMLElement {
     if (this.#state.isDetail) this.#history.back();
   }
 
-  // The history has moved back past the pane's entry: the browser's back
-  // button, a swipe, or close() above.
+  // Puts a project in the pane and slides it over, WITHOUT touching the
+  // history — the callers decide that. Returns false for an unknown slug.
+  #show(slug: string): boolean {
+    const template = this.#template(slug);
+    if (!template) return false;
+
+    // Re-opening the project that is already in the pane keeps it as it is —
+    // an iframe that has been navigated inside, a carousel on its fifth shot.
+    if (this.#state.open !== slug) this.#el.detailScroll.replaceChildren(template.content.cloneNode(true));
+
+    // Covers the frame for the length of the slide, then dissolves off it.
+    this.#stopReveal?.();
+    this.#stopReveal = playTileReveal(this.#el.detailPane.querySelector(".nsc-tile-reveal")!);
+    this.#state.open = slug;
+    this.#state.isDetail = true;
+    this.#render();
+    return true;
+  }
+
+  // The history moved: Back past the pane's entry (the browser's button, a
+  // swipe, or close() above), or Forward onto one. The URL now says what
+  // should be on screen, and the pane follows it — it never leads.
   #onPopState = () => {
+    const slug = slugFromPath(location.pathname);
+    if (slug && this.#template(slug)) {
+      if (this.#state.isDetail && this.#state.open === slug) return;
+      this.#show(slug);
+      this.#history.resume();
+      return;
+    }
     if (!this.#state.isDetail) return;
     this.#stopReveal?.();
     this.#state.isDetail = false;
     this.#render();
   };
+
+  #template(slug: string) {
+    return this.#el.detailPane.querySelector<HTMLTemplateElement>(`template[data-detail="${CSS.escape(slug)}"]`);
+  }
 
   // Section labels in document order, read from the DOM rather than declared
   // twice. One rotated title per label goes into the rail, ahead of the span
@@ -296,6 +326,12 @@ class Showcase extends HTMLElement {
       el.railButton.setAttribute("aria-label", isDetail ? "Close the project" : "Open the section menu");
     }
     el.railButton.classList.toggle("is-inverted", !!section && lit);
+
+    // The tab's title follows the URL: the project's while it is open, the
+    // portfolio's once it is closed — also on a /work/<slug>/ page, whose own
+    // <title> is the project's.
+    const pageTitle = isDetail ? template?.dataset.pageTitle : this.dataset.homeTitle;
+    if (pageTitle && document.title !== pageTitle) document.title = pageTitle;
   }
 }
 

@@ -7,11 +7,24 @@ import "./rail-button.scss";
 // there while a project is open.
 //
 // Which is why it has two jobs rather than two buttons: browsing, it opens the
-// section menu; with a project open (lesson 07), the same circle becomes the
-// way back out of it. Served in its menu mode; the controller swaps it.
+// section menu; with a project open, the same circle becomes the way back out
+// of it. The controller swaps it; `mode` is how it is served — "back" on a
+// /work/<slug>/ page, where a project is open on arrival (lesson 13).
+// `data-mode` is what the controller compares against, so a button served in
+// the right mode is left alone.
+interface Props {
+  mode?: "menu" | "back";
+}
+
+const { mode = "menu" } = Astro.props;
+const isBack = mode === "back";
 ---
 
-<button type="button" class="nsc-rail-button" aria-label="Open the section menu">
-  {/* Three rules out of one box: the middle bar is the element, the other two are its edges, so there is nothing to keep in step by hand. */}
-  <span class="menu-bars" aria-hidden="true"></span>
+<button type="button" class="nsc-rail-button" aria-label={isBack ? "Close the project" : "Open the section menu"} data-mode={mode}>
+  {isBack ? (
+    <svg class="back-arrow" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 8h-11" /><path d="M7 3.5 2.5 8 7 12.5" /></svg>
+  ) : (
+    /* Three rules out of one box: the middle bar is the element, the other two are its edges, so there is nothing to keep in step by hand. */
+    <span class="menu-bars" aria-hidden="true"></span>
+  )}
 </button>

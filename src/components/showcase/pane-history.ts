@@ -2,7 +2,9 @@
 //
 // Opening a project pushes one history entry, so the browser's back button —
 // and the swipe-back gesture on a phone — closes the pane instead of leaving
-// the site. The URL does not change (lesson 13 is where it starts to).
+// the site. Since lesson 13 that entry has the project's own URL,
+// /work/<slug>/, which is a real page: copy it, reload it, share it, and the
+// project is open on arrival.
 //
 // Closing goes back to where the page was before the pane opened, in ONE step.
 // A plain history.back() is not enough: the browser keeps ONE history for the
@@ -20,7 +22,8 @@
 // The Navigation API, where the browser has it; TypeScript's DOM types do not
 // carry it yet, so just the two members used here.
 type NavigationApi = {
-  currentEntry: { key: string } | null;
+  currentEntry: { key: string; index: number } | null;
+  entries(): { key: string }[];
   traverseTo(key: string): { finished: Promise<unknown> };
 };
 
@@ -31,12 +34,31 @@ export class PaneHistory {
   // entry, and the length history reached once the pane's own entry was pushed.
   #before: { key?: string; length: number } | null = null;
 
-  // Call when the pane opens.
-  push(slug: string) {
+  // Call when a project is opened from the page.
+  push(slug: string, url: string) {
     this.#before = { key: navigationApi()?.currentEntry?.key, length: 0 };
-    // The state object is only a marker; nothing reads the slug back yet.
-    history.pushState({ project: slug }, "");
+    history.pushState({ project: slug }, "", url);
     this.#before.length = history.length;
+  }
+
+  // Call when the page ARRIVES with a project open (a /work/<slug>/ link).
+  // There is no entry before it to go back to — the visitor came from another
+  // site, or from nowhere — so one is made: the current entry is rewritten to
+  // the index's URL, and the project's is pushed on top of it. Back then lands
+  // on the index, in this same document, instead of leaving.
+  adopt(slug: string, homeUrl: string) {
+    const here = location.href;
+    history.replaceState({}, "", homeUrl);
+    this.push(slug, here);
+  }
+
+  // Call when the history itself brought a project back — Forward onto its
+  // entry. Closing should still go back exactly one step past it, so the entry
+  // before it is recorded, where the Navigation API can say which that is.
+  resume() {
+    const nav = navigationApi();
+    const index = nav?.currentEntry?.index ?? 0;
+    this.#before = { key: index > 0 ? nav?.entries()[index - 1]?.key : undefined, length: 0 };
   }
 
   // Call to close the pane. Does not close it: it moves the history, and the

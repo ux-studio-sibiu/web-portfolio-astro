@@ -47,7 +47,7 @@ const INTENDED = [
 ];
 
 // data-* attributes the port adds as hooks for its own scripts.
-const PORT_HOOKS = ["words", "scroll-to", "open", "card", "card-role"];
+const PORT_HOOKS = ["words", "scroll-to", "open", "card", "card-role", "mode"];
 
 // Elements HTML lays out as blocks, so whitespace beside them never renders.
 const BLOCKS = "ul|ol|li|p|div|section|article|aside|h[1-6]|details|summary|hr";

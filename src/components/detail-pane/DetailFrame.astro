@@ -1,0 +1,17 @@
+---
+import type { Project } from "@/lib/projects";
+import DetailBody from "./DetailBody.astro";
+
+// A project's body in its frame: what goes into .pane-scroll when the project
+// is open. Rendered twice over: inside every <template>, and, on a
+// /work/<slug>/ page, straight into the pane for the project open on arrival.
+interface Props {
+  entry: Project;
+}
+
+const { entry } = Astro.props;
+---
+
+<div class:list={["detail-frame", { "is-embed": entry.data.embed }]}>
+  <DetailBody entry={entry} />
+</div>

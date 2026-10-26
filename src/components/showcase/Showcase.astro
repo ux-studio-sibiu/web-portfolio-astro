@@ -1,5 +1,5 @@
 ---
-import type { Project } from "@/lib/projects";
+import { HOME_TITLE, type Project } from "@/lib/projects";
 import FixedColumn from "@/components/fixed-column/FixedColumn.astro";
 import ElasticLine from "@/components/elastic-line/ElasticLine.astro";
 import DetailPane from "@/components/detail-pane/DetailPane.astro";
@@ -12,7 +12,7 @@ import "./showcase.scss";
 // columns of the index pane, the divider between columns 2 and 3, and the two
 // things fixed over all of it — the section rail and the side menu.
 //
-// The bands are its children, written in index.astro in page order. Each band
+// The bands are its children, written in Home.astro in page order. Each band
 // is its own component and brings its own stylesheet. A band that wants the
 // rail's title declares `data-section="Label"` on itself.
 //
@@ -20,20 +20,26 @@ import "./showcase.scss";
 // wrapped around the markup. It is `display: contents`, so it adds no box of
 // its own and the layout is exactly what it was without it.
 //
-// `projects` is every entry that can be opened, for the detail pane.
+// `projects` is every entry that can be opened, for the detail pane. `open`,
+// on a /work/<slug>/ page, is the one that is open on arrival: the track, the
+// panes' `inert`, the rail and its button are all served in their open state,
+// the state the controller's render() would put them in, so it finds nothing
+// to change. `data-open` tells it which project that is, and the two titles
+// are what it sets document.title back and forth between.
 interface Props {
   projects: Project[];
+  open?: Project;
 }
 
-const { projects } = Astro.props;
+const { projects, open } = Astro.props;
 ---
 
-<nsc-showcase>
+<nsc-showcase data-open={open?.id} data-home-title={HOME_TITLE}>
   <div class="nsc-showcase-linear">
-    <div class="showcase-track">
+    <div class:list={["showcase-track", { "is-detail": open }]}>
 
       {/* Index pane — three vertical sections. Column 1 is fixed and never scrolls; columns 2 and 3 scroll together inside .pane-scroll. The rule between 2 and 3 is the same line the project thumbnails sit against: both are placed off --col-media, so they cannot drift. */}
-      <section class="showcase-pane index-pane">
+      <section class="showcase-pane index-pane" inert={open ? true : undefined}>
         <FixedColumn />
 
         {/* Columns 2 + 3 — scrolling. */}
@@ -47,12 +53,12 @@ const { projects } = Astro.props;
         <ElasticLine class="column-rule" />
       </section>
 
-      <DetailPane projects={projects} />
+      <DetailPane projects={projects} open={open} />
 
     </div>
 
     {/* Outside the track, fixed to the viewport: the rail and the one control on the page stay exactly where they are while the detail pane comes over the top of everything else. */}
-    <SectionRail />
+    <SectionRail project={open && { title: open.data.railTitle ?? open.data.title, box: open.data.railTitleBox }} />
   </div>
 
   {/* Outside the shell entirely, where Next needed a portal to put it. */}

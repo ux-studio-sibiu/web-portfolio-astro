@@ -1,30 +1,8 @@
 ---
-import Portfolio from "@/layouts/Portfolio.astro";
-import Showcase from "@/components/showcase/Showcase.astro";
-import BandCoreTechnologies from "@/components/band-core-technologies/BandCoreTechnologies.astro";
-import BandWorkHistory from "@/components/band-work-history/BandWorkHistory.astro";
-import BandProjects from "@/components/band-projects/BandProjects.astro";
-import BandExperiments from "@/components/band-experiments/BandExperiments.astro";
-import BandSkills from "@/components/band-skills/BandSkills.astro";
-import BandContact from "@/components/band-contact/BandContact.astro";
-import { getProjects } from "@/lib/projects";
+import Home from "@/components/home/Home.astro";
 
-// The page, in page order. Adding or reordering a band is one edit here.
-//
-// One list of projects, split for display only: both bands will open into the
-// same detail pane (lesson 07). An entry with no `group` is a project; every
-// grouped one goes to the experiments band.
-const projects = await getProjects();
+// The portfolio with nothing open. The same page with a project open is
+// src/pages/work/[slug].astro.
 ---
 
-<Portfolio>
-  <Showcase projects={projects}>
-    <BandCoreTechnologies />
-    <BandWorkHistory />
-    <BandProjects items={projects.filter((entry) => !entry.data.group)} />
-    {/* Two shapes for the same kind of entry: a row each with its own copy, or a wall of frames with one block of copy for the set. Which group takes which is the `group` field in the entry. */}
-    <BandExperiments items={projects.filter((entry) => entry.data.group)} />
-    <BandSkills />
-    <BandContact />
-  </Showcase>
-</Portfolio>
+<Home />
