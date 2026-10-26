@@ -1,0 +1,188 @@
+---
+number: 2
+title: Styles, tokens and fonts
+summary: The global SCSS copied over, Sass wired through Vite, Archivo and JetBrains Mono self-hosted by the Fonts API, and a Portfolio layout that keeps all of it off the lesson pages.
+---
+
+The home page is still a placeholder, but it now sits on the real foundations: the colour tokens,
+`--gutter` and `--rail`, the global classes (`.label`, `.band-heading`, `.inline-link`, `.spec-note`…),
+both fonts, and the old site's exact viewport. Open `/` and you'll see the placeholder set in
+Archivo, with the Romanian name rendered in the real face.
+
+## Three ways to style an Astro component
+
+| Way | Written as | Reaches | Used here for |
+|---|---|---|---|
+| **Scoped** | `<style>` in an `.astro` file | Only elements written in *that* template (via `data-astro-cid-*`) | Lesson pages, the placeholder |
+| **Global** | `<style is:global>`, or `:global(...)` inside a scoped rule | Anything on the page | Reaching slotted or MDX content (lesson 01) |
+| **Imported** | `import "@/styles/x.scss"` in the frontmatter | Every page that renders this component | **The product**: `globals.scss` now, one `.scss` per component from lesson 03 |
+
+The product uses **imported** files because the old site's `.scss` files port unchanged, and the
+`nsc-` prefix already does the scoping by naming. Scoped styles would also miss everything that's
+slotted in, cloned from a `<template>` (lesson 07) or created by a script (gotcha G5).
+
+### An import applies per page, not per component
+
+This is what makes `Portfolio.astro` necessary. `globals.scss` locks the document:
+
+```scss
+body {
+  height: 100svh;
+  overflow: hidden; // the shell scrolls itself
+}
+```
+
+If `Base.astro` imported it, the lesson pages couldn't scroll. So there are two layouts now:
+
+- `Base.astro`: just `<html>` and `<head>`. The lesson pages use it directly.
+- `Portfolio.astro`: wraps `Base`, **imports `globals.scss`**, and adds the fonts.
+
+Astro collects the CSS imported by every component a page renders into that page's stylesheet.
+`/` gets `_astro/index.*.css`. The lesson pages get only their own small scoped CSS, which Astro
+inlines into a `<style>` tag because it's under the 4 kB `inlineStylesheets` threshold. The flip side
+is a gotcha: a component that *imports* CSS applies it to the page as soon as it's imported, even if
+it's never rendered.
+
+## Sass
+
+`npm install sass` is the only setup needed. `.scss` imports and `<style lang="scss">` just work.
+
+Every component file in the old site starts with:
+
+```scss
+@use "@/app/styles/breakpoints" as *;
+```
+
+The port keeps that pattern, with the path shortened to `@/styles/breakpoints`. The placeholder in
+`index.astro` uses it in a scoped `<style lang="scss">` to call `respond-to("tablet")`.
+
+### The alias needs saying twice
+
+The first build failed with `Can't find stylesheet to import`. The `@/*` alias from lesson 01 lives in
+`tsconfig.json`, and Astro applies it to TS/JS imports, so `import "@/styles/globals.scss"` worked.
+Sass resolves `@use` through **Vite**, though, and Vite doesn't read tsconfig. The fix is the same
+alias in `astro.config.mjs`:
+
+```js
+vite: {
+  resolve: {
+    alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
+  },
+},
+```
+
+`tsconfig.json` keeps its copy for the editor and the type checker. A string key matches `"@"` only
+when it's followed by `/`, so packages like `@astrojs/mdx` are untouched.
+
+### Why not `additionalData`?
+
+The roadmap first proposed injecting the partials into every file with
+`vite.css.preprocessorOptions.scss.additionalData`. Explicit `@use` won out:
+
+- It's what the old files already say, so they port without edits.
+- Every file shows what it depends on. Injected code is invisible when you read the file.
+- `additionalData` is pasted into **every** stylesheet. A partial that emits any CSS (not just
+  mixins and variables) would then be duplicated in each one (gotcha G12).
+
+## Fonts: the Fonts API instead of `next/font`
+
+`astro.config.mjs` now has a `fonts` array. Each entry names a family, a provider (Google here), a
+CSS variable, weights, subsets and fallbacks:
+
+```js
+{
+  name: "Archivo",
+  cssVariable: "--font-archivo",
+  provider: fontProviders.google(),
+  weights: ["100 900"],          // a variable font: one range
+  subsets: ["latin", "latin-ext"],
+  fallbacks: ["Helvetica Neue", "Helvetica", "Arial", "sans-serif"],
+},
+```
+
+`Portfolio.astro` puts `<Font cssVariable="--font-archivo" preload />` in the head. At build time
+Astro downloads the files and **self-hosts** them in `dist/_astro/fonts/`. It also writes the
+`@font-face` rules and sets `--font-archivo` on `:root`. `globals.scss` already read
+`var(--font-archivo)`, so it needed no change beyond a comment.
+
+| `next/font` (old) | Fonts API (now) |
+|---|---|
+| `Archivo({ subsets, variable, display })` in `layout.tsx` | an entry in `fonts` in `astro.config.mjs` |
+| `className={archivo.variable}` on `<html>` | `<Font cssVariable="--font-archivo" />` in `<head>` |
+| automatic preload | `preload` prop, opt-in per font |
+| metric-adjusted fallback (`adjustFontFallback`) | **optimized fallback**, generated from the last generic fallback |
+
+### Look at the fallback it generated
+
+View source on `/` and find the `@font-face` called `"Archivo-… fallback: Arial"`. It's local Arial
+with `size-adjust: 130.78%` and overridden ascent and descent, so while Archivo is still loading, Arial
+takes up **exactly the same space**. When Archivo swaps in, lines don't reflow and nothing jumps.
+`next/font` did the same thing behind the scenes. Here it's in the HTML where you can see it (G9).
+
+### latin-ext and the preload
+
+The Contact band sets the name with **Ț** and **ă**, which are outside the `latin` subset. Without
+`latin-ext`, those two letters alone would fall back to Arial. The comment from the Next layout came
+along to explain why.
+
+Google serves each subset as a separate file, so `preload` currently preloads **both** Archivo files.
+The latin-ext file is only needed for the name at the bottom of the page. That's a candidate for the
+performance pass (lesson 12), not something to change in a 1:1 port.
+
+## Head content from a layout: a named slot in use
+
+`Base.astro` had a `<slot name="head" />` from lesson 01. `Portfolio.astro` fills it:
+
+```astro
+<Base title={title} viewport={viewport}>
+  <Fragment slot="head">
+    <Font cssVariable="--font-archivo" preload />
+    <Font cssVariable="--font-jetbrains-mono" />
+  </Fragment>
+  <slot />
+</Base>
+```
+
+`<Fragment slot="head">` passes several elements into one named slot without a wrapper element.
+That matters in `<head>`, where a wrapper `<div>` isn't allowed.
+
+## The viewport, copied as-is
+
+`Base` takes an optional `viewport` prop. The portfolio passes the old site's value unchanged:
+
+```
+width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no
+```
+
+This blocks pinch-zoom (WCAG 1.4.4). It's kept for the 1:1 port and gets fixed in lesson 12 (G10).
+The lesson pages get the plain default.
+
+## Two features to know, not used yet
+
+- **`class:list`** builds a class attribute from strings, arrays and `{ class: condition }` objects,
+  like the `clsx` package: `class:list={["entry", size, { "is-active": active }]}`. Lesson 05 uses
+  it for project size variants.
+- **`define:vars`** passes frontmatter values into a `<style>` (or `<script>`) as CSS variables. It's
+  handy, but on a `<script>` it makes the script inline and unbundled, so the product will pass
+  values through `data-*` attributes instead (G3).
+
+## Files in this lesson
+
+- `package.json`: adds `sass`
+- `astro.config.mjs`: the `fonts` array (Archivo with latin + latin-ext, JetBrains Mono) and the `@` alias for Vite
+- `src/styles/globals.scss`, `_breakpoints.scss`, `_devices.scss`, `_modern-normalize.scss`: copied from `web-portfolio/app/styles/`, with one comment updated
+- `public/patterns/diagonal-lines.svg`: copied, because `globals.scss` references it (the build warned until it was there)
+- `src/layouts/Base.astro`: `viewport` prop
+- `src/layouts/Portfolio.astro`: new. Imports the globals, loads the fonts, sets the old viewport
+- `src/pages/index.astro`: the placeholder moved onto `Portfolio`, with a scoped SCSS example
+- `src/content/lessons/02-styles-fonts.mdx`: this page
+- `ROADMAP.md`: lesson 02 ticked, styles decision updated (explicit `@use` instead of `additionalData`)
+
+## Review checklist
+
+- [ ] `npm run build` passes with no warnings. `dist/_astro/fonts/` has 3 `.woff2` files, and `dist/_astro/` has one CSS file.
+- [ ] `/` is set in Archivo, and the label and spec note are in JetBrains Mono. Ț and ă in the name are in Archivo, not Arial.
+- [ ] View source on `/`: the generated `@font-face` rules, the `fallback: Arial` face with `size-adjust`, the two preload links, and the old viewport.
+- [ ] `/lessons/02-styles-fonts/` scrolls (so the globals didn't leak onto it), and its `<head>` has no font links and no `_astro/index.*.css`.
+- [ ] In DevTools, throttle the network to Slow 3G and reload `/`: the text appears in the fallback straight away and doesn't shift when Archivo arrives.
+- [ ] Remove the `vite.resolve.alias` block and rebuild to see the Sass error, then put it back.

@@ -8,7 +8,7 @@ Like `data-viz`, the lessons don't build separate demos: they all grow **one pro
 Each lesson also adds its own lesson page (`/lessons/NN-...`) that explains the concepts, compares them
 with what the Next.js version did, and ends with "Files in this lesson" and a "Review checklist".
 
-> Status: lesson 01 done. Decisions are settled in section 6.
+> Status: lessons 01–02 done. Decisions are settled in section 6.
 
 ---
 
@@ -51,7 +51,7 @@ About 9,200 lines of TSX + SCSS. The SCSS ports almost unchanged. The TSX is whe
 | React | Not installed in the product. Lesson 11 may add `@astrojs/react` for **one lesson-page demo** of `client:visible`, so you see islands and hydration directives side by side with the vanilla version. | You learn islands without making the product pay for them. |
 | Project data | A **content collection** `src/content/projects/*.mdx`: frontmatter holds the props (title, year, stack, group, thumb, href, order…), the MDX body holds the `points` with `<Highlight>` | See gotcha G1: Astro can't read props off children, so the `Children.toArray` pattern can't move over. The body stays markup, which keeps the spirit of `COMPONENT_PATTERNS.md`: content written as markup, not strings in an array. |
 | Detail bodies | Each project's detail is rendered at build time into a **`<template data-detail="slug">`** and cloned into the pane on open | Template content is inert: its iframes don't load and its images don't fetch until cloned. You get the `next/dynamic` laziness with zero JS chunks. |
-| Styles | Keep the per-component `.scss` files, **imported** by their `.astro` component (global, `nsc-` namespaced). Mixins and partials are injected with Vite `additionalData`. | `nsc-` already scopes, and the files port 1:1. Astro's scoped `<style>` is taught in lesson 02 and used on the lesson pages, but it isn't forced on the product (gotcha G5). |
+| Styles | Keep the per-component `.scss` files, **imported** by their `.astro` component (global, `nsc-` namespaced). Each file `@use`s the partials it needs (`@use "@/styles/breakpoints" as *`), as in the Next app. The `@` alias is set in both `tsconfig.json` and `vite.resolve.alias`, because Sass resolves through Vite. | `nsc-` already scopes, and the files port 1:1. Astro's scoped `<style>` is taught in lesson 02 and used on the lesson pages, but it isn't forced on the product (gotcha G5). |
 | Images | `astro:assets` `<Image>`/`<Picture>` (AVIF + WebP, `sizes` as today). Advisor screenshots move from `public/` into `src/assets/` so they get optimized too. | Same features as `next/image`, minus the blur placeholder (G4). |
 | Fonts | Astro's **Fonts API** (Archivo with `latin` + `latin-ext`, JetBrains Mono), with CSS variables `--font-archivo` / `--font-jetbrains-mono` kept | Self-hosted fonts with a metric-matched fallback, like `next/font`. Fontsource is the fallback option if the API doesn't fit. |
 | GSAP | Copied usage, plain `gsap` + `ScrollTrigger` npm packages (no `@gsap/react`), and `gsap.matchMedia()` for breakpoint and reduced-motion gating | Same behaviour. `useGSAP`'s cleanup becomes `mm.revert()` / `disconnectedCallback`. |
@@ -65,7 +65,7 @@ About 9,200 lines of TSX + SCSS. The SCSS ports almost unchanged. The TSX is whe
 
 ```
 web-portfolio-astro/
-  astro.config.mjs          static output, mdx, fonts, sass additionalData, devToolbar off
+  astro.config.mjs          static output, mdx, fonts, `@` alias for Vite, devToolbar off
   src/
     content.config.ts       projects + lessons collections (Zod schemas)
     content/
@@ -155,9 +155,9 @@ Structure changes compared with the Next app:
   Proposal: drop it. If it was there to stop iOS zooming into inputs, a 16px input font fixes that.
 - **G11 — Dev toolbar position.** Astro's dev toolbar sits bottom-centre/left, the same trap as Next's
   dev indicator over the rail menu button. Disable it or move it in the config.
-- **G12 — Sass deprecations.** Recent `sass` warns on `@import` and global built-ins. Partials should be
-  `@use`d. Injecting them with `additionalData` into every file is convenient, but it duplicates any CSS
-  they *emit*, so partials must contain only mixins, functions and variables.
+- **G12 — Sass deprecations.** Recent `sass` warns on `@import` and global built-ins. Partials are
+  `@use`d explicitly in each file. `additionalData` was rejected in lesson 02: it hides the dependency and
+  duplicates any CSS a partial *emits* into every stylesheet.
 - **G13 — Iframe permissions.** Keep `allow="camera"` (light-study) and `allow="clipboard-write"` (the
   tools) per project in frontmatter, plus `referrerPolicy`.
 - **G14 — Not a git repo yet.** This folder needs `git init` before lesson 01 can be committed. You do
@@ -187,7 +187,7 @@ what the lesson page explains (always with a **Next.js → Astro** comparison ta
 | # | Lesson | Product change | Concepts |
 |---|---|---|---|
 | 01 | Setup + the lesson layer ✓ | `npm create astro`, TS strict, `astro.config`, `Base` layout, lessons collection, `LessonPage`, `/lessons` index, placeholder home | Anatomy of a `.astro` file (frontmatter = build time, template = HTML), file-based routing, static output, `getStaticPaths` for the lesson pages, why Astro ships zero JS by default |
-| 02 | Styles, tokens, fonts | `globals.scss` + partials copied, `additionalData` for mixins, Fonts API (Archivo + latin-ext, JetBrains Mono), meta + viewport copied as-is | Scoped vs imported vs `is:global` styles, `class:list`, `define:vars` in `<style>`, font fallback metrics (G9, G12) |
+| 02 | Styles, tokens, fonts ✓ | `globals.scss` + partials copied, explicit `@use` with the `@` alias, `Portfolio` layout (globals stay off the lesson pages), Fonts API (Archivo + latin-ext, JetBrains Mono), meta + viewport copied as-is | Scoped vs imported vs `is:global` styles, `class:list`, `define:vars` in `<style>`, font fallback metrics (G9, G12) |
 | 03 | The shell + text-only bands | Two-pane track, fixed column (identity + blurb), `.pane-scroll` with columns 2–3, detail-pane frame (closed), plus Core technologies, Work history, Skills and Contact as plain `.astro` (CV links to `public/cv`), all with no JS | Components, `Astro.props` with a typed `Props` interface, default and **named slots**, slot fallbacks, `Astro.slots.has`, `.map()` and conditionals in templates, fragments, `set:html` (and when not to) |
 | 04 | Projects as a content collection | `projects` collection + Zod schema, one `.mdx` per entry, `<Highlight>` in MDX, thumbs copied into `src/assets` | Content layer, `glob()` loader, `image()` in schemas, `getCollection` + sorting, `render()` → `<Content />`, MDX components mapping. **G1: why not children props.** |
 | 05 | Projects & experiments bands (markup + images) | Both bands rendered from the collection: sizes, groups (tools / various), `className` variants, image-composed thumbs (radio TV, randomize) | `astro:assets` `<Image>` / `<Picture>`, `sizes` / `widths`, AVIF, CLS, the LQIP decision (G4), `public/` vs `src/assets` |

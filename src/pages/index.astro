@@ -1,21 +1,30 @@
 ---
-// Placeholder until lesson 03 puts the shell here.
-import Base from "@/layouts/Base.astro";
+// Placeholder until lesson 03 puts the shell here. It already sits on the
+// real layout, so the fonts, tokens and global classes can be checked.
+import Portfolio from "@/layouts/Portfolio.astro";
 ---
 
-<Base title="Razvan Turcanu — Frontend Developer" description="Selected work by a frontend developer building fast, functional interfaces.">
+<Portfolio>
   <main class="nsc-placeholder">
-    <h1>Razvan Turcanu</h1>
+    <p class="label">Placeholder · lesson 02</p>
+    <h1 class="band-heading">Țurcanu Răzvan</h1>
     <p>The portfolio is being rebuilt in Astro, one lesson at a time.</p>
-    <p><a href="/lessons/">Lessons</a></p>
+    <p class="spec-note">d3.js, three.js, map-libre, webgl</p>
+    <p><a class="inline-link" href="/lessons/">Lessons</a></p>
   </main>
-</Base>
+</Portfolio>
 
-<style>
+<style lang="scss">
+  @use "@/styles/breakpoints" as *;
+
   .nsc-placeholder {
-    max-width: 40rem;
-    margin: 4rem auto;
-    padding: 0 1rem;
-    font-family: system-ui, sans-serif;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: var(--gutter);
+
+    @include respond-to("tablet") {
+      padding-left: calc(var(--rail) + var(--gutter));
+    }
   }
 </style>

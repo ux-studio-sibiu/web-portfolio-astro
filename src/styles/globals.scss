@@ -1,0 +1,615 @@
+@use "breakpoints" as *;
+@use "modern-normalize" as *;
+
+:root {
+  // White paper, black ink, one grey. No accent colour by design.
+  --color-bg: #ffffff;
+  --color-ink: #000000;
+  --color-muted: #737373;
+  --color-line: #000000;
+  --color-faint: #d4d4d4;
+  --color-wash: #f4f4f2;
+
+  // Loaded by the Fonts API (`fonts` in astro.config.mjs, <Font /> in
+  // Base.astro). Each variable already ends in its own metric-matched fallback;
+  // the stacks here are a second line of defence. Archivo sets the page; the
+  // mono is the small-copy and label face — see --font-mono's users, and the
+  // note on .entry-points in src/styles/_devices.scss.
+  --font-sans: var(--font-archivo), "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, "SF Mono", Menlo, monospace;
+
+  --gutter: 1.25rem;
+
+  // Width of the black section rail down the left edge of column 1. Global
+  // because three separate things measure off it: the rail itself, the fixed
+  // column's left padding, and the menu button that sits centred on it.
+  --rail: 5rem;
+
+  @include respond-to("tablet") {
+    --gutter: 2rem;
+  }
+
+  @include respond-to("desktop") {
+    --gutter: 2.75rem;
+  }
+}
+
+html {
+  min-height: 100%;
+  width: 100%;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.08);
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-faint) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-faint);
+}
+
+::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  // The showcase is a fixed, self-scrolling shell — the document itself never
+  // scrolls, so lock it here rather than fighting it per component.
+  height: 100vh;
+  height: 100svh;
+  overflow: hidden;
+  width: 100%;
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+::selection {
+  background: var(--color-ink);
+  color: var(--color-bg);
+}
+
+// Sweeps a black band across a phrase like a manual selection, then leaves the
+// text inverted. Drop the class on any inline span — or write <Highlight>, which
+// is the same thing with the inner box below written for you.
+//
+// Progress is a single custom property, --lit (0 to 1), so the same declarations
+// serve all three ways it can be driven:
+//   1. natively, off the element's own view() timeline where supported
+//   2. scrubbed by ScrollHighlights, tied to scroll position
+//   3. pinned at 1 for reduced motion, print and forced colours
+//
+// TWO boxes, not one. The band and the inverted glyphs cannot share an element:
+// they want different values of `background-clip` on different layers of the
+// same background, and Firefox does not do that — give any layer `text` and it
+// clips the whole background to the glyphs, so the band never paints and the
+// phrase turns white on white. Chromium honours the list, which is why this only
+// showed up there. So each box carries layers that agree: the outer one paints
+// the band, the inner one paints the glyphs, and both read the same --lit.
+//
+// Registered so the native path can animate it, which is also what lets one
+// animation on the outer box drive the inner one — it inherits the value.
+@property --lit {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
+.highlight-on-scroll {
+  --lit: 0;
+
+  // A background image rather than a pseudo-element, so the band wraps with the
+  // text across line breaks instead of being one box over both lines.
+  background-image: linear-gradient(var(--color-ink), var(--color-ink));
+  background-repeat: no-repeat;
+  background-position: left center;
+  background-size: calc(var(--lit) * 100%) 100%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+
+  // Fallback path only, and scoped to it: without text-clipped layers the
+  // glyphs cannot invert per pixel, so they flip in one step once the band is
+  // past halfway.
+  //
+  // The scope is the whole point. .highlight-ink paints the glyphs the band has
+  // NOT reached with `currentColor`, which it inherits from here — so flipping
+  // this to paper white where that box is doing its job paints the rest of the
+  // phrase white on white. It is ScrollHighlights that adds .is-lit, so this
+  // only ever bit in browsers running the scrubbed path: Firefox saw it, and
+  // Chromium, which runs the native one and never sets the class, did not.
+  @supports not (background-clip: text) {
+    &.is-lit,
+    &.is-selected {
+      color: var(--color-bg);
+    }
+  }
+
+  // Native scroll-driven path. Same sweep, run by the browser off the element's
+  // own view() timeline — no JS, no scroll handler, and it stays off the main
+  // thread. ScrollHighlights detects this and stands down.
+  @supports (animation-timeline: view()) {
+    animation: highlight-sweep linear both;
+    animation-timeline: view();
+    // Runs while the phrase travels from the bottom edge up to 40% of the way
+    // up the screen, so it is finished by the time you are reading it. The whole
+    // `entry` phase is only the span's own height of scrolling — about 30px for
+    // a line of text — so an entry-only range finishes at the bottom edge, well
+    // before the phrase is anywhere near readable.
+    //
+    // `cover 40%` IS "40% up the page", near enough: the cover range is the
+    // viewport plus the element, and the element is one line tall, so the two
+    // differ by about a percent. The JS fallback states the same thing the
+    // other way round, as a fraction from the TOP — see END in
+    // scroll-highlights.tsx, which has to be 1 - this.
+    animation-range: entry 100% cover 40%;
+  }
+
+  // Pinned variant, for a phrase that does not travel with the scroll — the
+  // identity blurb sits in the fixed column, so its own view() timeline reads as
+  // permanently in range and the band starts full. This drives the sweep off how
+  // far the PANE has been scrolled instead, published as --sweep-px (pixels
+  // scrolled) and --sweep-over (pixels the sweep takes) by the showcase, which
+  // means it starts at nothing because the page does and unwinds on the way back
+  // up.
+  //
+  // In pixels rather than as a ready-made 0-to-1 fraction so a phrase can be held
+  // back: --sweep-delay is how many pixels of scrolling pass before this one
+  // starts, which is what keeps two phrases in the same paragraph from sweeping
+  // as a single wide band. Set it through <Highlight delay={…}>.
+  //
+  // Two classes beats the one-class rule on specificity, so the native animation
+  // is off regardless of source order.
+  &.pinned {
+    --sweep-delay: 0;
+    --lit: clamp(0, calc((var(--sweep-px, 0) - var(--sweep-delay)) / var(--sweep-over, 1)), 1);
+    animation: none;
+
+    @media (prefers-reduced-motion: reduce) {
+      --lit: 1;
+    }
+  }
+
+  // Always lit, never swept — <Highlight alwaysSelected>. After .pinned so it
+  // wins on source order at the same specificity.
+  &.is-selected {
+    --lit: 1;
+    animation: none;
+  }
+
+  // Nothing to scrub: show the finished state.
+  @media (prefers-reduced-motion: reduce) {
+    --lit: 1;
+    animation: none;
+  }
+}
+
+// The glyphs, inside the band. The padding is HERE rather than on the box that
+// paints the band: it is what holds the band clear of the letters, and with it
+// on the inner box the two boxes are exactly the same size, so a band at 50% and
+// an inversion at 50% fall on the same pixel.
+.highlight-ink {
+  // Room to breathe. At 0.06em the band closed on the ascenders and descenders,
+  // which is most of what made a lit phrase hard to read: white letters with
+  // their tops and tails touching a black edge.
+  padding: 0.14em 0.18em;
+  // Half a step heavier than the copy it sits in, for two reasons that happen to
+  // agree. The glyphs below are painted as a CLIPPED BACKGROUND, not as text —
+  // that is what `background-clip: text` means — and a browser cannot subpixel-
+  // antialias a background, so a highlighted phrase is rendered greyscale where
+  // everything around it gets ClearType, and comes out visibly thinner. Weight
+  // puts back what the greyscale takes off. The second reason is simpler: this
+  // is the emphasised phrase, and it should carry a little more ink.
+  //
+  // A real weight, not a synthesised one: Archivo is loaded as a variable font
+  // in layout.tsx with no `weight` pinned, so 500 is a drawn instance.
+  font-weight: 500;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+
+  // Pixel-perfect variant. The glyphs are painted by two text-clipped layers
+  // instead of by `color`: an inverted layer that grows with the band, over a
+  // layer in the inherited colour. Both share the band's size, so the inversion
+  // tracks the band edge per pixel with no colour step at all.
+  //
+  // Unprefixed only: Safari has not needed -webkit-background-clip since 14, and
+  // testing for the prefix would let a browser in here that the declarations
+  // below cannot serve. Where the test fails nothing here applies, the glyphs are
+  // painted by `color` as usual, and the step in .is-lit takes over.
+  @supports (background-clip: text) {
+    // `color` stays put so currentColor below still resolves to the real ink;
+    // the glyphs themselves are painted by the clipped layers.
+    -webkit-text-fill-color: transparent;
+    background-image:
+      linear-gradient(var(--color-bg), var(--color-bg)),
+      linear-gradient(currentColor, currentColor);
+    background-clip: text, text;
+    background-repeat: no-repeat;
+    background-position: left center, left center;
+    background-size:
+      calc(var(--lit) * 100%) 100%,
+      100% 100%;
+  }
+}
+
+// Backgrounds are dropped when printing and under forced colours. Both boxes are
+// backgrounds — one is the band, the other IS the glyphs — so the phrase would
+// print as a blank gap. Paint the text normally in both and drop the band with
+// it. One rule rather than one per box: they want the same thing said.
+@media print, (forced-colors: active) {
+  .highlight-on-scroll,
+  .highlight-ink {
+    -webkit-text-fill-color: currentColor;
+    background-image: none;
+    animation: none;
+    color: inherit;
+  }
+}
+
+// One property, inherited by the inner box, so a single animation sweeps both.
+@keyframes highlight-sweep {
+  from { --lit: 0; }
+  to { --lit: 1; }
+}
+
+// Numbered list. A shared device rather than a per-section style: Core
+// technologies and Skills both use it, so it lives here and neither owns it.
+// Rows are index + name, with an optional note under the name.
+.spec-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+// A plain block: the grid it used to be existed to hold a numbering column on
+// the left, and there is no longer anything to align against.
+.spec-row {
+  padding: 1.5rem 0;
+  border-bottom: 1px solid var(--color-ink);
+}
+
+.spec-name {
+  margin: 0;
+  font-size: clamp(1.5rem, 2.6vw, 2.25rem);
+  line-height: 1;
+  letter-spacing: -0.035em;
+  font-weight: 700;
+
+}
+
+.spec-note {
+  margin: 0.5rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  color: var(--color-ink);
+}
+
+// Micro-label: uppercase mono, used for every meta / eyebrow line in the site.
+.label {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+// A phrase inside a sentence that goes somewhere. Shared, because the page has
+// more than one sentence that names something it also holds.
+//
+// `inherit` on font and colour: this is usually a <button>, which takes none of
+// the surrounding type by default, and the words have to read as the words they
+// sit among. Nothing but the rule under them marks them out.
+//
+// The rule is the whole of the interaction. Thin at rest so the sentence still
+// reads as a sentence, twice that under the pointer — enough to answer "is this
+// a thing?" without a fill, a colour change or anything else that would pull
+// the eye while you are only reading.
+.inline-link {
+  padding: 0;
+  background: none;
+  border: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+  transition: text-decoration-thickness 0.15s ease;
+
+  &:hover,
+  &:focus-visible {
+    text-decoration-thickness: 2px;
+  }
+
+  // A keyboard user has no pointer, so a thicker rule on its own is not enough
+  // to say where they are.
+  &:focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+
+// The large title at the head of a band. One device for every section, so a
+// band reads as a band wherever it sits — it is the shape the Skills title had
+// before it was the only one of its kind.
+//
+// Lives here rather than in the shell because it belongs to what a band
+// CONTAINS, not to the grid a band sits in. `.band-title` in the shell is a
+// different, smaller thing: the label that goes in a band's own rail.
+// This is the SMALLER of the two flavours, and it is for long titles only — a
+// word like Experiments cannot be set at display size without running into the
+// gutter. Everything short takes .band-title-large below.
+.band-heading {
+  margin: 0 0 2rem;
+  font-size: clamp(2.5rem, 5vw, 4.5rem);
+  line-height: 1;
+  letter-spacing: -0.045em;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+// The default flavour in practice: as large as a short word can be set in the
+// content column without wrapping. The vw term is what holds it off the gutter
+// between breakpoints — the cap only takes over on a very wide screen.
+.band-heading.band-title-large {
+  font-size: clamp(3rem, 8.5vw, 7.5rem);
+  line-height: 0.9;
+}
+
+// The control that opens a project or an experiment. It was `.entry-more`,
+// written out twice in near-identical copies that had drifted apart on border
+// width and type size; this is the reconciled one, and the name says what it is
+// rather than where it happened to sit.
+//
+// Margins are deliberately NOT here: how much room a button needs is a property
+// of the band around it, and the two bands genuinely differ.
+// The shadow this page casts: an offset block of hatch, the way an elevation
+// drawing throws one, rather than a soft grey blur. Shared by the thumbnails and
+// the view-more button, because the same object should not look different
+// depending on which of them it is.
+//
+// The tile is patterns/diagonal-lines.svg, drawn in currentColor — read from CSS
+// there is no element for that to inherit from, so it resolves to black, which
+// is the ink this page is drawn in anyway.
+//
+// The box translated by the offset, exactly as a drop shadow is, so only an L of
+// it clears the plate on the right and underneath. The rest is covered by what
+// it sits behind, which is what keeps it reading as depth and not as a border —
+// so whatever this is given to has to be OPAQUE, or the hatch shows through the
+// middle and the thing looks hatched rather than raised.
+//
+// Bigger than the 3px/5px blur it replaces: at that size the tile had no room to
+// draw a single line, and a hatch shadow only says "hatch" if the hatching can
+// be seen.
+@mixin hatch-shadow($offset: 10px) {
+  // The knob, per element, so a small control can throw a shorter shadow than a
+  // large picture does.
+  --hatch-offset: #{$offset};
+
+  position: relative;
+
+  &::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: var(--hatch-offset) calc(var(--hatch-offset) * -1) calc(var(--hatch-offset) * -1) var(--hatch-offset);
+    background-image: url("/patterns/diagonal-lines.svg");
+    background-size: 4px 4px;
+    background-repeat: repeat;
+    pointer-events: none;
+  }
+}
+
+.view-more-button {
+  // Shorter than the thumbnails throw. This is a 40px-tall control, and at their
+  // 10px the shadow was a quarter of its height.
+  @include hatch-shadow(6px);
+
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  align-self: flex-start;
+  padding: 0.4rem 1.25rem;
+  // Opaque, where this was `transparent`. The shadow sits behind the button and
+  // is meant to show only where it clears it; through a transparent face the
+  // hatch reads as a fill. The page behind is --color-bg in every band it
+  // appears in, so nothing changes to look at.
+  background: var(--color-bg);
+  color: var(--color-ink);
+  border: 4px solid var(--color-ink);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 0.25s ease, color 0.25s ease;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--color-ink);
+    color: var(--color-bg);
+  }
+
+  // Nested rather than global: the arrow only means anything inside the button.
+  .row-arrow {
+    display: inline-block;
+    transition: transform 0.25s ease;
+  }
+
+  &:hover .row-arrow,
+  &:focus-visible .row-arrow {
+    transform: translateX(0.35rem);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    .row-arrow {
+      transition: none;
+    }
+  }
+}
+
+// The column a thumbnail or a live frame sits in. Shared by every band that has
+// one — it was written out identically in band-projects and band-experiments,
+// and a third band would have copied it again.
+//
+// What it owns is the INSET: how far the media is held off the edges of the
+// pane. What goes inside it — a picture, a live frame, a grid of them — is the
+// band's business, and so is how wide that is (--thumb).
+//
+// The left inset never drops below --media-inset, which is the width of the
+// black section rail. Below that the rail crosses the media instead of sitting
+// beside it, which is exactly what happened once column 2 was allowed to take
+// the whole half: on a narrow screen the gutter alone is about 20px and the
+// thumbnail ran under the black.
+.entry-visual {
+  --media-inset: 5rem;
+
+  min-width: 0;
+  padding: 0 var(--gutter) 0 max(var(--media-inset), var(--gutter));
+
+  // The gap between the media and the divider, which is half of the air around
+  // that line: .entry-body's left padding is the other half, and the two are
+  // kept the same number so the line sits centred in the space it splits.
+  @include respond-to("tablet") {
+    padding-right: 3rem;
+  }
+
+  // Below tablet the rail is not drawn, so there is nothing to clear on the
+  // left: the media runs the full width between equal gutters, lined up with
+  // the titles and copy, with more air before the title that follows it.
+  // Children are left to stretch — .entry-thumb is width: 100% here, so every
+  // thumbnail and every group fills the column the same way.
+  @include respond-to-max("tablet") {
+    padding: 0 var(--gutter) 30px;
+  }
+}
+
+// The clickable media box: a project thumbnail, an experiment's frame, one cell
+// of the tools grid. Shared, because they had drifted — a 2px border here, a
+// 1px one there, a shadow on one of them — and there is no reason for the same
+// object to look different depending on which band it lands in.
+//
+// It carries no shape of its own. A picture brings its own proportion; anything
+// with nothing to measure says so — see .is-empty, and the :has(iframe) rule in
+// band-experiments, where a live frame has to be given one.
+.entry-thumb {
+  @include hatch-shadow(10px);
+
+  display: block;
+  width: 100%;
+  padding: 0;
+  background: var(--color-wash);
+  border: 2px solid var(--color-ink);
+  cursor: pointer;
+  // NOT `overflow: hidden`, which is what this was. It clipped every pseudo-
+  // element to the box, and the shadow below has to sit outside one. What the
+  // clip was guarding is already handled: the picture is sized to the box, and
+  // the live frames are laid out oversized and scaled back to it, so what they
+  // PAINT fits either way — measured at zero spill on all fifteen of them.
+  // Grey until pointed at — the colour arriving is what marks the one you are
+  // on. Eased out and a little longer than the fill, so the image settles
+  // rather than snapping.
+  filter: grayscale(1);
+  transition: background-color 0.25s ease, filter 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+
+  @include respond-to("tablet") {
+    // One fixed measure rather than whatever the column happens to be — the
+    // column is sized off --thumb, so this fills it exactly. The `min` is for
+    // the screens where column 2 is capped: the media gives way with the rail
+    // instead of running under it.
+    width: min(var(--thumb), 100%);
+  }
+
+  // Nothing inside to size the box with, so fall back to a fixed ratio.
+  &.is-empty {
+    aspect-ratio: 4 / 3;
+  }
+
+  // Keyboard gets the same thing the pointer does.
+  &:hover,
+  &:focus-visible {
+    background-color: var(--color-ink);
+    filter: grayscale(0);
+
+    // The hatch lifts with the grey. At rest a thumbnail is a hatched plate;
+    // pointed at, it is the photograph — one gesture, not two, which is why
+    // this runs on the same curve and duration as the grayscale above.
+    &::after {
+      opacity: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+// How wide the media in an entry is. One number per entry, which everything in
+// it is measured off — .entry-thumb fills it, and in the projects band the
+// column is cut for it.
+//
+// On BOTH entry kinds, so an experiment can be sized by the same word a project
+// is: the class comes off the <LinearProject> and lands on the row.
+.scroll-entry,
+.scroll-entry-secondary {
+  --thumb: 320px;
+
+  &.small { --thumb: 200px; }
+  &.medium { --thumb: 320px; }
+  &.large { --thumb: 420px; }
+  &.xxl { --thumb: 650px; }
+}
+
+// A row of tech pills under an entry's role line. It replaced the prose summary
+// that used to sit here, which is why the class was renamed: the element is no
+// longer a summary of anything, it is the stack.
+.entry-tech-stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+// One item of a stack. Small, quiet, and set in the mono face like every other
+// piece of metadata on the site — it is a label, not a button, so nothing here
+// suggests it can be pressed.
+.pill {
+  padding: 0.2rem 0.55rem;
+  background: var(--color-wash);
+  border: 1px solid var(--color-faint);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  line-height: 1.4;
+  color: var(--color-ink);
+  // A stack item is one thing; breaking ".NET core" across two lines would read
+  // as two.
+  white-space: nowrap;
+}

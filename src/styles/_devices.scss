@@ -1,0 +1,86 @@
+// Devices more than one band draws, kept as MIXINS rather than as classes in
+// globals.scss.
+//
+// The distinction matters here: a global `.entry-points` would land on every
+// band that uses the name, and Work history uses it for something deliberately
+// different — larger type, a smaller marker, its own spacing. A mixin only
+// applies where it is asked for, so two bands can share a device without a
+// third being dragged along by the cascade.
+//
+// Add to this file when a second band wants what the first one has. Keep
+// single-use styling in the band that owns it.
+
+// The bullet list under an entry's copy — the projects treatment, now shared
+// with experiments. Square markers in keeping with the rail markers, hung out
+// of the text block so a wrapped line returns to the words and not under the
+// square.
+@mixin entry-points {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  list-style: none;
+  // .entry-text carries the measure.
+  max-width: none;
+
+  // The mono, not the page face. It is the small-copy voice here: the label
+  // device has always used it, and running the points in it too makes the whole
+  // of an entry's detail read as one thing, set apart from the title above it.
+  // Titles and anything display-sized stay in Archivo.
+  //
+  // 0.8rem rather than the 0.9375 this held in Archivo — the mono is wider per
+  // character but shorter in the x-height, so it wants coming down a step.
+  li {
+    position: relative;
+    padding-left: 1.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: var(--color-ink);
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0.55em;
+      left: 0;
+      width: 6px;
+      height: 6px;
+      background: var(--color-ink);
+    }
+  }
+
+  // A group label inside the list rather than a point of its own: it takes no
+  // marker and no indent, and sits on the same small mono device every other
+  // label on the site uses. The space above is what makes it read as the head
+  // of the block under it rather than as a stray line in the one above.
+  li.small-heading {
+    margin-top: 1.5rem;
+    padding-left: 0;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-ink);
+
+    &::before {
+      content: none;
+    }
+  }
+
+  // Second-level points, a list inside a point: the same spacing a step
+  // tighter, and a hollow marker so they read as belonging to the one above.
+  ul {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin: 0.5rem 0 0;
+    padding: 0;
+    list-style: none;
+
+    li::before {
+      background: none;
+      border: 1px solid var(--color-ink);
+    }
+  }
+}

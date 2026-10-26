@@ -1,0 +1,34 @@
+---
+import { Font } from "astro:assets";
+import Base from "@/layouts/Base.astro";
+// An import in the frontmatter puts this CSS on every page that USES this
+// layout, and only those. globals.scss locks the body (`overflow: hidden`, the
+// shell scrolls itself), so it must not reach the lesson pages, which use Base
+// directly.
+import "@/styles/globals.scss";
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = "Razvan Turcanu — Frontend Developer",
+  description = "Selected work by a frontend developer building fast, functional interfaces.",
+} = Astro.props;
+
+// Copied as-is from the Next layout's `viewport` export. It blocks pinch-zoom
+// (WCAG 1.4.4); lesson 12 fixes it, see G10 in the roadmap.
+const viewport = "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no";
+
+// Archivo sets the page, so it is preloaded. The mono is small copy further
+// down and can arrive a moment later.
+---
+
+<Base title={title} description={description} viewport={viewport}>
+  <Fragment slot="head">
+    <Font cssVariable="--font-archivo" preload />
+    <Font cssVariable="--font-jetbrains-mono" />
+  </Fragment>
+  <slot />
+</Base>

@@ -1,0 +1,40 @@
+// Responsive breakpoints and mixins
+
+// Breakpoint values
+$mobile: 480px;     // small phones
+$tablet: 768px;     // tablets & large phones
+$desktop: 1024px;   // desktops
+$wide: 1440px;      // large screens
+
+// Responsive design mixin — min-width (mobile-first), "$breakpoint and up".
+@mixin respond-to($breakpoint) {
+  @if $breakpoint == "mobile" {
+    @media (min-width: $mobile) { @content; }
+  }
+  @if $breakpoint == "tablet" {
+    @media (min-width: $tablet) { @content; }
+  }
+  @if $breakpoint == "desktop" {
+    @media (min-width: $desktop) { @content; }
+  }
+  @if $breakpoint == "wide" {
+    @media (min-width: $wide) { @content; }
+  }
+}
+
+// Max-width (top-down) counterpart, "below $breakpoint". 0.02px under the value
+// so it never overlaps the min-width respond-to at the same breakpoint.
+@mixin respond-to-max($breakpoint) {
+  @if $breakpoint == "mobile" {
+    @media (max-width: ($mobile - 0.02px)) { @content; }
+  }
+  @if $breakpoint == "tablet" {
+    @media (max-width: ($tablet - 0.02px)) { @content; }
+  }
+  @if $breakpoint == "desktop" {
+    @media (max-width: ($desktop - 0.02px)) { @content; }
+  }
+  @if $breakpoint == "wide" {
+    @media (max-width: ($wide - 0.02px)) { @content; }
+  }
+}
