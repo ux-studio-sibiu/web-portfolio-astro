@@ -1,0 +1,23 @@
+---
+import "./elastic-line.scss";
+
+// The divider between columns 2 and 3. Served dead straight, which is also what
+// stands under reduced motion; the pull towards the cursor arrives in lesson 10.
+//
+// preserveAspectRatio="none" stretches this viewBox to whatever height the
+// element is given, and the non-scaling stroke stays a hairline through it.
+interface Props {
+  class?: string;
+}
+
+// `class` is a reserved word, so it is renamed on the way out of props.
+const { class: className } = Astro.props;
+
+// The box is far wider than the line so a throw has somewhere to go.
+const ROOM = 500;
+const X = ROOM / 2;
+---
+
+<svg class:list={["nsc-elastic-line", className]} style={{ "--room": `${ROOM}px` }} viewBox={`0 0 ${ROOM} 1000`} preserveAspectRatio="none" aria-hidden="true">
+  <path d={`M ${X} 0 L ${X} 1000`} vector-effect="non-scaling-stroke" />
+</svg>

@@ -1,0 +1,17 @@
+// What the line IS. Where it goes — position, offset, stacking, whether it
+// shows at all — belongs to the stylesheet that places it, along with the real
+// height an svg needs to stretch instead of resolving off its viewBox ratio.
+.nsc-elastic-line {
+  display: block;
+  // --room is written by the component, which is also the number the path is
+  // drawn against. The box is far wider than the line so a throw has somewhere
+  // to go, and it is pulled back half its width so the path down the middle
+  // lands where the element was put rather than half a box to the right.
+  width: var(--room);
+  margin-left: calc(var(--room) / -2);
+  fill: none;
+  stroke: var(--color-ink);
+  stroke-width: 1;
+  // The surface underneath has to see the cursor for any of this to work.
+  pointer-events: none;
+}

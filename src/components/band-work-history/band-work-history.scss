@@ -1,0 +1,363 @@
+@use "@/styles/breakpoints" as *;
+
+// No rail of its own: the full-height .column-rule between columns 2 and 3,
+// owned by the showcase shell, is the line these entries sit against — the same
+// line the project thumbnails are placed off. Both are measured from
+// --col-media, which is why they cannot drift apart.
+.nsc-band-work-history {
+  // How much air a row opens with. One figure, because two elements have to
+  // agree on it: the disclosure carries it as its own padding, and the date
+  // column repeats it so the year sits level with the title beside it rather
+  // than a row-padding higher.
+  --row-pad: 1.5rem;
+
+  // The same run-in the other big bands take, so Work history, Projects, Skills
+  // and Contact are all set apart from each other by one figure.
+  margin-top: 25rem;
+
+  // This band is `is-full`, so its content starts at the pane edge rather than
+  // in the second track. The heading is inset to land on the same line the
+  // entry copy starts on, instead of under the rail at the far left.
+  .band-heading {
+    padding: 0 var(--gutter);
+
+    @include respond-to("tablet") {
+      padding: 0 var(--gutter) 0 calc(var(--col-media) + 3rem);
+    }
+  }
+
+  .history-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  // No padding of its own: an entry's air is the padding on the disclosure
+  // inside it, which is what the rule is drawn against. Two paddings would put
+  // the line somewhere other than where the row ends.
+  .history-entry {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+
+    @include respond-to("tablet") {
+      grid-template-columns: var(--col-media) 1fr;
+      gap: 0;
+    }
+  }
+
+  // Column 2 — the dates. From tablet up the insets are .entry-visual's, so the
+  // years end on exactly the line a thumbnail would: the left one never drops
+  // below the width of the black section rail, and the right one is half the
+  // air around the divider (.entry-body's left padding below is the other
+  // half).
+  //
+  // Below tablet there are no columns — the date sits above its own entry, so
+  // it takes the plain gutter and starts on the same line as the copy. The rail
+  // inset is for a picture that would otherwise run under the black; a line of
+  // type in the flow has nothing to clear.
+  //
+  // The top padding is --row-pad because the disclosure beside it opens on the
+  // same figure; without it the year rides a row-padding higher than its title.
+  .entry-when {
+    min-width: 0;
+    padding: var(--row-pad) var(--gutter) 0;
+
+    @include respond-to("tablet") {
+      --media-inset: 5rem;
+
+      padding-left: max(var(--media-inset), var(--gutter));
+      padding-right: 3rem;
+    }
+  }
+
+  // Held beside the role for as long as that role is on screen, the way a
+  // project thumbnail holds beside its copy. Nothing above this may carry a
+  // transform, a filter or an overflow — any of them would break the sticky.
+  .when-mark {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    margin: 0;
+    // Both halves are set in the page's own face now, so it is declared once
+    // here and inherited rather than stated on each. It was the mono, which is
+    // what every other small label on the site is set in — but a date is not a
+    // label, it is the other half of the year above it, and the two reading as
+    // one thing matters more than the house rule for labels.
+    font-family: var(--font-sans);
+    letter-spacing: 0.04em;
+
+    @include respond-to("tablet") {
+      position: sticky;
+      top: 2.5rem;
+      // Stacked and packed to the divider, so the run of years reads as a
+      // column against the line rather than as three loose labels.
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.15rem;
+    }
+  }
+
+  // The year the post started, set large enough to be the thing you read when
+  // you scan the column.
+  .when-from {
+    // Face comes from .when-mark above — the page's own, not the mono every
+    // other small label is set in. A year is read at a glance from across the
+    // column, and JetBrains Mono at this size is a typewriter doing a
+    // headline's job: the figures are even but they are not clear.
+    //
+    // Declared on the shell, because the identity in column 1 has to reserve
+    // room for it — see --year-size there.
+    font-size: var(--year-size);
+    line-height: 1;
+    letter-spacing: -0.04em;
+    font-weight: 700;
+  }
+
+  // And where it ended, quiet under it — with the dash drawn rather than typed,
+  // so it stays on the number's side of the gap when the pair stacks.
+  // The end of the run, quiet under the year it belongs to. No rule before it:
+  // the two sit one above the other in the same face, which already reads as one
+  // date — a drawn dash was a third mark joining things that were not apart.
+  //
+  // The flex box went with it; it existed to lay the dash out beside the text.
+  .when-to {
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-ink);
+  }
+
+  .entry-body {
+    min-width: 0;
+    padding: 0 var(--gutter);
+
+    @include respond-to("tablet") {
+      padding: 0 var(--gutter) 0 3rem;
+    }
+  }
+
+  // .entry-text is here for the same reason the projects and experiments bands
+  // have one — it is the copy half of an entry. What it carries is the SHARED
+  // measure, because the hairline under each row is drawn on the disclosure
+  // inside this box: without it the rules ran the whole of column 2 and grew
+  // with the viewport. The narrower text measure sits on .entry-points.
+  .entry-text {
+    max-width: var(--measure);
+  }
+
+  // The same type as .spec-name in globals, which is what Core technologies
+  // sets its row titles in. Restated rather than shared because the class is
+  // .entry-place: this is a title that happens to be set like a spec row, and
+  // the two are free to part company later.
+  .entry-place {
+    margin: 0;
+    font-size: clamp(1.5rem, 2.6vw, 2.25rem);
+    line-height: 1;
+    letter-spacing: -0.035em;
+    font-weight: 700;
+  }
+
+  // The role line is the shared .spec-note from globals, which Core
+  // technologies and Skills already set their notes in — the class is on the
+  // element in the markup, so there is nothing here to drift from it. It is a
+  // <span>, because a <summary> takes phrasing and heading content and a
+  // paragraph is neither, so it has to be blocked by hand for spec-note's top
+  // margin to mean anything.
+  .entry-role {
+    display: block;
+  }
+
+  // The entry IS the disclosure: the title and the role are the summary, and
+  // everything that is detail — the points and the stack — is inside it and
+  // closed. The run of three entries stays scannable instead of being three
+  // screens of bullets.
+  //
+  // Set as a row of the shared .spec-* device that Core technologies and Skills
+  // are built from — same padding, same hairline under it — so a post here and
+  // a technology there read as the same kind of object. The rule closes the
+  // whole section, so it sits under the points when the entry is open.
+  .entry-detail {
+    padding: var(--row-pad) 0;
+    border-bottom: 1px solid var(--color-ink);
+  }
+
+  // The whole row is the control, so the pointer is on all of it and not only
+  // on a word — a title that big reading as pressable is most of what tells you
+  // there is more behind it.
+  //
+  // Title and role to the left, the caret pushed to the far right and centred
+  // on the row, so it sits between the rules rather than beside the words.
+  //
+  // `list-style: none` is what removes the browser's own disclosure triangle in
+  // every engine that follows the spec; the -webkit- rule is for Safari, which
+  // draws it as a pseudo-element instead and ignores the first.
+  .detail-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    list-style: none;
+    cursor: pointer;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+
+    // Keyboard users get a real ring around the row rather than the underline,
+    // which on its own is easy to miss on a line already set in bold.
+    &:focus-visible {
+      outline: 2px solid var(--color-ink);
+      outline-offset: 0.5rem;
+    }
+  }
+
+  // The left half. min-width: 0 so a long title wraps inside it instead of
+  // pushing the caret off the end of the row.
+  .toggle-text {
+    min-width: 0;
+  }
+
+  // A chevron: the shape a dropdown has everywhere, so it needs no explaining,
+  // and it has an obvious half-turn to make. Stroked in currentColor so it sits
+  // at the weight of the type it belongs to.
+  //
+  // Sized in rem rather than em now that it stands at the end of the row on its
+  // own: it is the row's control, not a mark on the title, so it should be the
+  // same size whatever the title beside it is doing.
+  .toggle-mark {
+    flex: none;
+    width: 1.5rem;
+    height: 1.5rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: transform 0.3s ease;
+  }
+
+  // Open is a half-turn and nothing else. There was a 2px nudge on hover as
+  // well — and a second rule to send it the other way once the chevron was
+  // upside down — but the turn already says everything the control has to say.
+  .entry-detail[open] .toggle-mark {
+    transform: rotate(180deg);
+  }
+
+  // The copy of the date that sits in the title row. Hidden from tablet up,
+  // where the date has its own column; below tablet it is the one shown and the
+  // column is not, so a screen reader only ever meets one of the two.
+  .when-inline {
+    display: none;
+  }
+
+  // Below tablet the date leaves its own line above the entry and moves into the
+  // title row, small and stacked, just before the caret. It is a flex item of
+  // the summary there, so the row's own centring puts it level with the caret
+  // whatever height the title and role wrap to.
+  @include respond-to-max("tablet") {
+    .history-entry {
+      gap: 0;
+    }
+
+    .entry-when {
+      display: none;
+    }
+
+    .when-inline {
+      display: flex;
+      flex: none;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.15rem;
+      margin-left: auto;
+      font-family: var(--font-sans);
+      letter-spacing: 0.04em;
+    }
+
+    .when-from {
+      font-size: 1.125rem;
+    }
+
+    .when-to {
+      font-size: 0.625rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .toggle-mark {
+      transition: none;
+    }
+  }
+
+  // The list snaps open rather than sliding. Sliding it wants a height
+  // transition on ::details-content, and that was tried: `interpolate-size:
+  // allow-keywords` with `block-size: 0 -> auto`, plus `content-visibility` in
+  // the transition list with `allow-discrete` so the content is not hidden out
+  // from under the close. Chrome 152 does not run it — the height snaps anyway
+  // — and the content-visibility line is worse than useless there: it holds the
+  // property at `hidden`, so an OPEN list stays clipped to nothing.
+  //
+  // So: no height animation. The chevron's half-turn is what carries the
+  // interaction, and it is real in every engine. Worth retrying when
+  // ::details-content has settled down.
+
+  // The measure for an entry's copy, now that .entry-text has to run the full
+  // width of the column for the rules. A plain length on purpose: this is a
+  // text measure, not a column, so it must not move when --col-media or the
+  // gutters are retuned.
+  .entry-points {
+    margin: 1.5rem 0 0;
+    padding: 0;
+    max-width: 38rem;
+    list-style: none;
+    // Same small-copy voice as the shared device in _devices.scss, and the same
+    // size — this band states its own only because it wants different spacing
+    // and a smaller marker, not a different type.
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    line-height: 1.5;
+
+    // The marker is hung out of the text block rather than set in a track of
+    // its own, so a wrapped line returns to the text and not under the square.
+    //
+    // Deliberately NOT a two-column grid: a grid container blockifies every
+    // inline child into a grid item, which puts each <Highlight> and <code> in
+    // a cell of its own and breaks the sentence a word per line.
+    li {
+      position: relative;
+      margin: 0 0 0.85rem;
+      padding-left: 1.1em;
+
+      &::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        // Onto the optical middle of the first line rather than its top.
+        top: 0.57em;
+        width: 0.36em;
+        height: 0.36em;
+        background: var(--color-ink);
+      }
+    }
+  }
+
+  // A tool or a technology named inside a sentence: a tint and a little air, no
+  // border, because one line here can hold three of them. Same device as the
+  // project detail panels.
+  code {
+    font-family: var(--font-mono);
+    font-size: 0.8125em;
+    background: var(--color-wash);
+    border-radius: 2px;
+    padding: 0.15em 0.4em;
+    white-space: nowrap;
+  }
+
+  // The stack row is the shared .entry-tech-stack / .pill pair from globals; all
+  // this band adds is the air above it, which is a property of this list and not
+  // of the pills.
+  .entry-tech-stack {
+    margin-top: 1.75rem;
+  }
+}

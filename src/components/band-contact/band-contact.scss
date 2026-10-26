@@ -1,0 +1,92 @@
+@use "@/styles/breakpoints" as *;
+
+.nsc-band-contact {
+  // Same air above it as the projects band, so the two big bands are spaced
+  // alike down the page.
+  margin-top: 25rem;
+
+  // The card stops at the shared measure rather than running the whole of
+  // column 2 — the rule over the footer was the giveaway, drawn to the far edge
+  // of a wide screen under a block of type a third of that wide.
+  //
+  // The column inset is padding on this box and the box is border-box, so it
+  // has to be added back, the same way Skills does it.
+  .band-content {
+    max-width: calc(var(--measure) + 3rem + var(--gutter));
+  }
+
+  // The shared device carries the rule, the spacing, the bold name and the mono
+  // line under it — see .spec-row, .spec-name and .spec-note in globals. All
+  // that is left to say here is the air under the block and what a link inside
+  // the mono line looks like.
+  .contact-list {
+    margin: 0 0 3rem;
+  }
+
+  // Heavier than the hairline .spec-row carries everywhere else. Scoped to this
+  // band on purpose: the same device opens the page in Core technologies, and
+  // the two are meant to read as the same thing at different weights — a list
+  // you scan at the top, a card you stop at, at the bottom.
+  .spec-row {
+    border-bottom: 3px solid var(--color-ink);
+  }
+
+  .spec-note {
+    // The address is the long one, and it breaks rather than running out of the
+    // pane on a narrow screen.
+    overflow-wrap: anywhere;
+
+    // The shared note is spaced to sit UNDER a name. In the two rows that are
+    // the line on its own, there is nothing above it to sit under.
+    &:only-child {
+      margin-top: 0;
+    }
+
+    // Underlined, because a row of mono text gives no other clue that two of
+    // these three things can be pressed.
+    a {
+      text-decoration: underline;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 0.18em;
+    }
+  }
+
+  // GitHub and the CV sit together on one line, both reading as links rather
+  // than buttons — the section is a card, not a call to action.
+  .contact-links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2rem;
+    margin-top: 2.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+
+    a {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      border-bottom: 2px solid var(--color-ink);
+      padding-bottom: 0.25rem;
+      transition: opacity 0.2s ease;
+
+      &:hover {
+        opacity: 0.55;
+      }
+    }
+  }
+
+  // Drawn rather than an icon font: a page with a folded corner, stroked in the
+  // current colour so it follows the link on hover.
+  .pdf-icon {
+    width: 1.1em;
+    height: 1.1em;
+    flex: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.3;
+    stroke-linejoin: round;
+  }
+}

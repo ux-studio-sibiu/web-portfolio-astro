@@ -1,0 +1,152 @@
+---
+import Highlight from "@/components/highlight/Highlight.astro";
+import ToggleMark from "./ToggleMark.astro";
+import "./band-work-history.scss";
+
+// Work history. Deliberately NOT a `data-section` band: it is read over the
+// identity, which is still up while it passes, and a band only declares
+// `data-section` to claim the black rail's title and a line in the section
+// menu. Both of those belong to the run that starts at Projects, so this one
+// claims neither — it is a stretch of the page rather than a destination.
+//
+// Set like the projects band: the band spans both scrolling columns (`is-full`)
+// so each entry can define the same `--col-media` grid and land against the
+// divider. Column 2 holds the years, sticky, so the dates hold beside the role
+// they belong to for as long as that role is on screen; column 3 is the copy.
+//
+// An entry IS a disclosure: the <summary> is the place and the role, so the
+// title is the thing you press, and everything that is detail — the points and
+// the stack — is inside and closed. Native <details>: it opens and closes with
+// no script at all, and the browser brings the keyboard and screen-reader
+// behaviour with it. In the Next version this was the one part of the band
+// that worked before hydration; here the whole band is that.
+//
+// The role lines are <span>s, not <p>s, on purpose: a summary takes phrasing
+// and heading content, and a paragraph is neither.
+//
+// The two "jump" phrases are buttons carrying `data-scroll-to` with the slug of
+// a project further down the page. Nothing listens yet: the scroll lands in
+// lesson 06, and the "view in projects" card under the pointer in lesson 11.
+---
+
+<section class="band nsc-band-work-history">
+  <div class="band-content is-full">
+    {/* The smaller of the two title flavours, the one Experiments takes: two words cannot be set at display size in the content column without wrapping. */}
+    <h2 class="band-heading">Work history</h2>
+
+    <ol class="history-list">
+      <li class="history-entry">
+        <div class="entry-when">
+          <p class="when-mark">
+            <span class="when-from">2018</span>
+            <span class="when-to">present</span>
+          </p>
+        </div>
+
+        <div class="entry-body">
+          <div class="entry-text">
+            {/* The two posts are open on arrival: they are what an employer came to read, and leaving them shut asks for a click before the section says anything. `open` is the initial state only, so any of them still shuts like the others once it is touched. */}
+            <details class="entry-detail" open>
+              <summary class="detail-toggle">
+                <span class="toggle-text">
+                  <h3 class="entry-place">Visma</h3>
+                  <span class="entry-role spec-note">Frontend engineer</span>
+                </span>
+                {/* The same date again, for the title row below tablet, where the column above is hidden. Only one of the two is ever displayed. */}
+                <span class="when-inline"><span class="when-from">2018</span><span class="when-to">present</span></span>
+                <ToggleMark />
+              </summary>
+
+              <ul class="entry-points">
+                {/* The product this post is mostly about is also a project further down the page, so the phrase that names it is the way there. A button, not an anchor: it scrolls the pane, which is not a navigation to a URL of its own. */}
+                <li>
+                  <Highlight>long-standing</Highlight> contribution for{" "}
+                  <button type="button" class="inline-link" data-scroll-to="advisor">accounting SaaS</button>{" "}
+                  for nordic markets on product development and maintenance, knowledge sharing and documentation
+                </li>
+
+                <li><Highlight>focused on frontend and UI</Highlight> to improve structure and consistency by refactoring, enforcing constraints and confirmed patterns, <Highlight>discuss design</Highlight>, push back on flawed UX and propose alternatives</li>
+                <li>developed an in-house ajax library to modernize the existing .net application into a <Highlight>custom SPA</Highlight></li>
+                <li>led long-term ui <Highlight>modernization effort</Highlight> to refactor, remodel ux, and adopt <Highlight>design system</Highlight> by <Highlight>coordinating junior devs</Highlight>, knowledge sharing, code-reviews, effort estimation</li>
+                <li>implemented refactoring and migration strategies with version control to centralize components, reduce complexity, <Highlight>improve dx</Highlight></li>
+                <li>proactive in reducing complexity, redundant dependencies, bugs and visual inconsistencies</li>
+
+                <li>acted as a <Highlight>main contact with the UX team</Highlight>, participated in UX research, user testing, interviews and complemented the design effort with ui prototypes and technical feedback</li>
+
+                <li>complemented AI development by setting up <Highlight>skills, .md instructions</Highlight> and documenting existing <Highlight>confirmed patterns</Highlight></li>
+              </ul>
+            </details>
+          </div>
+        </div>
+      </li>
+
+      <li class="history-entry">
+        <div class="entry-when">
+          <p class="when-mark">
+            <span class="when-from">2014</span>
+            <span class="when-to">2018</span>
+          </p>
+        </div>
+
+        <div class="entry-body">
+          <div class="entry-text">
+            <details class="entry-detail" open>
+              <summary class="detail-toggle">
+                <span class="toggle-text">
+                  <h3 class="entry-place">Mi-Pay Sibiu</h3>
+                  <span class="entry-role spec-note">Frontend developer</span>
+                </span>
+                <span class="when-inline"><span class="when-from">2014</span><span class="when-to">2018</span></span>
+                <ToggleMark />
+              </summary>
+
+              <ul class="entry-points">
+                <li>enhanced web applications by integrating new features and improving performance</li>
+                <li>improved responsiveness of products following mobile-first best practices</li>
+                <li>
+                  <Highlight>proposed and implemented</Highlight> the design of a{" "}
+                  <button type="button" class="inline-link" data-scroll-to="four-in-one">white-label product</button>{" "}. Concept allows for convenient per-customer branding
+                </li>
+
+                <li>modernized the same product by <Highlight>migrating to SPA</Highlight> using ajax libraries of the time (sammy.js)</li>
+                <li>migrated an internal customer-support tool to Angular 2</li>
+              </ul>
+            </details>
+          </div>
+        </div>
+      </li>
+
+      {/* A degree, not a post, so what is listed under it is what carried over rather than what was delivered. Kept to four lines: any longer and it starts to read as an excuse for the change of field. */}
+      <li class="history-entry">
+        <div class="entry-when">
+          <p class="when-mark">
+            <span class="when-from">2007</span>
+            <span class="when-to">2013</span>
+          </p>
+        </div>
+
+        <div class="entry-body">
+          <div class="entry-text">
+            <details class="entry-detail" open>
+              <summary class="detail-toggle">
+                <span class="toggle-text">
+                  <h3 class="entry-place">Architecture and Building Design</h3>
+                  <span class="entry-role spec-note">Bachelor's Degree -- University of Architecture, Cluj-Napoca</span>
+                  <span class="entry-role spec-note"></span>
+                </span>
+                <span class="when-inline"><span class="when-from">2007</span><span class="when-to">2013</span></span>
+                <ToggleMark />
+              </summary>
+
+              <ul class="entry-points">
+                <li>trained in <Highlight>cross-disciplinary</Highlight> workflows, concept-to-detail process, human-centered design</li>
+                <li><Highlight>fast prototyping</Highlight> with presenting, defending and iterating on work</li>
+                <li>daily power user of complex professional UIs like ArchiCAD, AutoCAD, 3ds Max</li>
+              </ul>
+            </details>
+          </div>
+        </div>
+      </li>
+    </ol>
+  </div>
+</section>

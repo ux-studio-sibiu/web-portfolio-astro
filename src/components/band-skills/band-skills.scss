@@ -1,0 +1,190 @@
+@use "@/styles/breakpoints" as *;
+
+// The stack: the word standing under itself, nearly touching. $ghost-step is
+// the air left between the GLYPHS, not between their line boxes — a line box
+// at this weight is 0.9em while the ink of the capitals is only $ink-height of
+// it, so stepping by the line box left 47px of daylight where 3 was wanted.
+//
+// $ink-height is measured, not guessed: the cap-to-baseline ink of Archivo 800
+// comes out at 0.714em. Change the face and it wants measuring again.
+$ink-height: 0.715em;
+$ghost-step: 3px;
+// How many stand down the column before it runs out. Declared in the component
+// as well, since that is what renders them.
+$ghost-count: 5;
+// How far through the stack the scroll has got, 0 to 1. Registered so it can be
+// interpolated, and inherited so every copy can read it off the stack and work
+// out whether its turn has come.
+@property --progress {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
+.nsc-band-skills {
+  // The same gap the projects band opens with, so the three big bands are set
+  // apart from each other by one figure.
+  margin-top: 25rem;
+
+  // Rows stop at the shared measure rather than running the whole of column 2.
+  // These are sentences with a hairline under each: at the full width of a wide
+  // screen the rule ran a long way past the end of every one of them.
+  //
+  // The column inset is padding on this box and the box is border-box, so it
+  // has to be added back — otherwise the rows land 3rem and a gutter short of
+  // the measure that every other band is held to.
+  .band-content {
+    max-width: calc(var(--measure) + 3rem + var(--gutter));
+  }
+
+  // Column 1 of the band. Below tablet there are no columns and no room, so it
+  // is not drawn at all.
+  //
+  // Pushed down to start level with the FIRST ROW of the list rather than with
+  // the top of the column, which means clearing the heading above it: the
+  // padding is that heading worked out — its font-size clamp times its
+  // line-height, plus its margin. Change .band-heading and this has to follow.
+  .band-visual {
+    display: none;
+
+    @include respond-to("tablet") {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      grid-column: 1;
+      padding: calc(clamp(3rem, 8.5vw, 7.5rem) * 0.9 + 2rem) var(--gutter) 0;
+    }
+  }
+
+  // Nothing is cropped: the box reserves the height the whole stack needs, and
+  // the copies appear in it one by one. In the flow, so it scrolls away with the
+  // band like everything else.
+  //
+  // --progress here is the FINISHED state: what shows when the browser cannot
+  // run the animation below is the whole stack, not an empty column.
+  .can-stack {
+    // The reveal is timed off this box rather than off the band, because what
+    // decides when the first copy shows is where the WORD is on screen, not how
+    // far into the section you are.
+    view-timeline-name: --can-stack;
+    position: relative;
+    display: block;
+    --progress: 1;
+    height: calc(#{$ghost-count - 1} * (#{$ink-height} + #{$ghost-step}) + 0.9em);
+    // Set once here so every copy inherits the same type — any drift between
+    // them and the stack stops lining up.
+    font-size: clamp(6rem, 18vw, 14rem);
+    line-height: 0.9;
+    letter-spacing: -0.05em;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  // Filled, not outlined. Stacked straight down with no sideways offset, so the
+  // copies line up into a column rather than a diagonal.
+  //
+  // Stacking order is reversed against document order so the first copy sits on
+  // top and the rest recede behind it; painted in document order the last would
+  // cover every one before it. Shades are set per copy below.
+  //
+  // Each works out its own turn: the stack is --progress of the way through its
+  // range, so copy N fades in over the slice from N/count to (N+1)/count. At
+  // progress 0 none of them are up — the first appears as the range opens.
+  // Filled, every one of them — the shade is set per copy below.
+  .can-ghost {
+    // Blockified so every copy is exactly one line box tall. The absolute ones
+    // get that for free; the first is in the flow, and left inline its box is
+    // the ink of the glyphs — taller than the line, which ate the gap under it.
+    display: block;
+    position: absolute;
+    top: calc(var(--i) * (#{$ink-height} + #{$ghost-step}));
+    left: 0;
+    z-index: calc(#{$ghost-count} - var(--i));
+    opacity: clamp(0, calc(var(--progress) * #{$ghost-count} - var(--i)), 1);
+  }
+
+  // Every copy is 15 points lighter than the one above it, so the stack reads as
+// the same word receding. Worked out here rather than from var(--i) in one
+// declaration because sass cannot evaluate hsl() with a calc inside it.
+  @for $i from 0 through $ghost-count - 1 {
+    .can-ghost:nth-child(#{$i + 1}) {
+      color: hsl(0, 0%, (15 * $i) * 1%);
+    }
+  }
+  // The first copy is in the flow rather than absolute — with every copy positioned the stack
+  // measured zero wide, and centring a zero-width box puts it nowhere. Its own
+  // offset is 0, so being in the flow moves nothing.
+  //
+  // After the loop on purpose: :first-child and :nth-child(1) carry the same
+  // weight, so this has to come second to win.
+  .can-ghost:first-child {
+    position: relative;
+  }
+
+
+  // Scroll-driven, run by the browser off the band's own timeline. All it does
+  // is drive --progress from 0 to 1; which copies that makes visible is worked
+  // out by each copy for itself, above.
+  @supports (animation-timeline: view()) {
+    .can-stack {
+      animation: can-stack-fill linear both;
+      animation-timeline: --can-stack;
+      // `cover 50%` is where the stack's middle meets the middle of the
+      // viewport; the first copy now lands 20vh of scrolling before that, so it
+      // is already there as the stack comes up. The end stays put, so the copies
+      // after it arrive over a slightly longer run.
+      animation-range: cover calc(50% - 20vh) cover 90%;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .can-stack {
+        animation: none;
+      }
+    }
+  }
+
+  .skills-lede {
+    margin: 0.75rem 0 0;
+    max-width: 44ch;
+    font-size: 1.0625rem;
+    line-height: 1.5;
+    color: var(--color-muted);
+  }
+
+  // The rows are sentences, not names, so they take the small-copy voice the
+  // entry points and the identity blurb take — see src/styles/_devices.scss.
+  // Here rather than on .spec-name-small in globals.scss because this band is
+  // its only user, and the base .spec-name stays a display device for the bands
+  // that set titles with it.
+  //
+  // The tracking goes with the face: -0.02em was cut for Archivo at 1.25rem and
+  // closes the mono up badly at this size.
+  .spec-name-small {
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    letter-spacing: normal;
+  }
+
+  // Square bullet at the head of every row — this band only, which is why it is
+  // here rather than on the shared .spec-name in globals.scss. Core
+  // technologies uses the same device and keeps its rows unmarked.
+  //
+  // Inline rather than hung off the row: sized in `em` it scales with the name
+  // it belongs to, and it sits on the text's own line, so there is no padding to
+  // keep in step with anything.
+  .spec-name::before {
+    content: "";
+    display: inline-block;
+    width: 0.36em;
+    height: 0.36em;
+    margin-right: 0.5em;
+    background: var(--color-ink);
+    // Off the baseline, onto the optical middle of the lowercase.
+    vertical-align: 0.12em;
+  }
+}
+
+@keyframes can-stack-fill {
+  from { --progress: 0; }
+  to { --progress: 1; }
+}

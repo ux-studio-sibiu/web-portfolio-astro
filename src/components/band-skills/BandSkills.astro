@@ -1,0 +1,62 @@
+---
+import Highlight from "@/components/highlight/Highlight.astro";
+import "./band-skills.scss";
+
+// Skills. `data-section` is what puts "Skills" in the fixed column as this band
+// passes the trigger line — the showcase reads those attributes off the DOM, so
+// this is the only place the label is declared.
+//
+// Rows use the shared `.spec-*` device from globals.scss, at the smaller size
+// variant since these are sentences rather than product names.
+//
+// The CAN stack (a hollow "Can", repeated down the band) is out for now, as it
+// was in the Next version; its styles are still in band-skills.scss.
+---
+
+<section class="band nsc-band-skills" data-section="Skills">
+  <div class="band-content">
+    <h2 class="band-heading band-title-large">Skills</h2>
+
+    <ol class="spec-list">
+      <li class="spec-row">
+        <span class="spec-name spec-name-small">Fast learner, team player, good communication skills</span>
+      </li>
+
+      <li class="spec-row">
+        <span class="spec-name spec-name-small">Can make effective use of <Highlight>AI tools</Highlight> for design and development</span>
+      </li>
+
+      <li class="spec-row">
+        <span class="spec-name spec-name-small">High attention to detail, can work to <Highlight>tight deadlines</Highlight></span>
+      </li>
+      <li class="spec-row">
+        <span class="spec-name spec-name-small">Can take <Highlight>ownership and accountability</Highlight></span>
+      </li>
+      <li class="spec-row">
+        <span class="spec-name spec-name-small">Can work effectively with ux, animation, design, content teams</span>
+      </li>
+
+      <li class="spec-row">
+        <span class="spec-name spec-name-small">Can constructively complement vague or incomplete requirements</span>
+      </li>
+
+      <li class="spec-row">
+        <span class="spec-name spec-name-small">Can <Highlight>challenge procedures</Highlight> and suggest new ideas</span>
+      </li>
+
+      <li class="spec-row">
+        <span class="spec-name spec-name-small">Experience with <Highlight>interactive data visualization</Highlight></span>
+      </li>
+
+      <li class="spec-row">
+        <span class="spec-name spec-name-small">Experience of <Highlight>mentoring</Highlight> (peer QA and feedback)</span>
+      </li>
+      <li class="spec-row">
+        <span class="spec-name spec-name-small">Can manage scope and delivery across multiple projects</span>
+      </li>
+      <li class="spec-row">
+        <span class="spec-name spec-name-small">Can create tools to improve <Highlight>client, design and dev teams workflows</Highlight></span>
+      </li>
+    </ol>
+  </div>
+</section>

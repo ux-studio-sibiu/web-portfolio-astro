@@ -1,0 +1,339 @@
+@use "@/styles/breakpoints" as *;
+
+// Frame only. Everything inside a band, the fixed column or the detail pane
+// lives in that component's own stylesheet; what stays here is the geometry
+// they all sit in — the track, the three columns, and the divider.
+//
+// The one number that ties it together is --col-media: column 2's width, itself
+// derived from --thumb. The divider is placed off it, and so are the project
+// entries, which is why they cannot drift apart.
+.nsc-showcase-linear {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh; // fallback for browsers without svh
+  height: 100svh;
+  overflow: hidden;
+  background: var(--color-bg);
+
+  // The project thumbnail is what column 2 exists to hold, so it is the number
+  // everything else is derived from rather than a value column 2 hands down.
+  //
+  // It is the WIDEST a thumbnail gets, not the only width: entries redeclare it
+  // to size themselves (band-projects alternates), and column 2 has to be cut
+  // for the largest of them or a wide one would run back under column 1. The
+  // redeclarations cannot disturb --col-media below — a custom property is
+  // substituted where it is declared, so that line resolves here, with this
+  // value, and descendants inherit the answer rather than the sum.
+  --thumb: 650px;
+
+  // Columns 1 + 2 together are 50% of the pane, so column 1 is
+  // 50% - --col-media and the divider lands exactly on the halfway line.
+  //
+  // Column 2 is the thumbnail plus the gutter either side of it — that is what
+  // puts the thumbnail's right edge on the divider with nothing left over.
+  //
+  // The second term is the only floor left: half the pane. There used to be one
+  // under column 1 as well, keeping it at least 20rem so a thumbnail could not
+  // run back under the identity — but the identity is laid OVER this half and
+  // fades out before the thumbnails arrive, so what it was protecting is no
+  // longer there to protect. Dropping it lets column 2 take the whole half, and
+  // the thumbnail fill it.
+  //
+  // Below the width where the thumbnail plus its gutters exceeds 50vw, column 1
+  // closes to nothing and the scrolling content starts at the screen edge. The
+  // bands whose content sits in the second track are unaffected: that track
+  // still begins on the divider, which is still exactly 50vw.
+  --col-media: min(calc(var(--thumb) + var(--gutter) + 3rem), 50vw);
+
+  // Where the scrolling content starts — what column 1 used to be exactly as
+  // wide as, before it was given the whole left half to sit over. The bands are
+  // still inset by it, so nothing under the identity moved.
+  //
+  // Measured in vw, not %, because the scroller it is laid over is also the box
+  // that carries the scrollbar — a percentage would be short by the scrollbar
+  // width and drift the divider off the halfway line. The pane is exactly 100vw
+  // wide, so 50vw is its middle.
+  --col-fixed: calc(50vw - var(--col-media));
+
+  // How wide a band's content is allowed to get in the second track, past the
+  // fold. Column 2 takes the whole remaining half, which on a wide screen is
+  // far more than anything in it wants to be: the rules under the Work history
+  // rows, the Skills rows and the contact card were all drawn to the full width
+  // and kept growing with the viewport.
+  //
+  // Wider than the 38rem text measure the copy already uses, and deliberately:
+  // a rule may run past the words it sits under, it just may not run to the
+  // edge of the screen.
+  --measure: 42rem;
+
+  // The size the Work history years are set at. Here rather than in that band
+  // because two components have to agree on it: the band sets the years, and
+  // the identity in column 1 has to stay narrow enough for them to scroll past
+  // without collision — see .fixed-name. Declared once so the two cannot drift.
+  --year-size: clamp(1.75rem, 3.4vw, 2.5rem);
+
+  --rule: 1px solid var(--color-ink);
+  --rule-hair: 1px solid var(--color-faint);
+
+  // --- Track ----------------------------------------------------------------
+
+  .showcase-track {
+    display: flex;
+    width: 200%;
+    height: 100%;
+    transition: transform 0.75s cubic-bezier(0.65, 0, 0.35, 1);
+
+    &.is-detail {
+      transform: translateX(-50%);
+
+      // Far enough to bring the detail pane's left edge up to the RAIL rather
+      // than to the screen edge: from tablet up that pane is --rail narrower
+      // than the screen, so it has exactly that much less to travel.
+      @include respond-to("tablet") {
+        transform: translateX(calc(var(--rail) - 100vw));
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
+  }
+
+  .showcase-pane {
+    flex: 0 0 50%;
+    height: 100%;
+    min-width: 0;
+  }
+
+  // The detail pane stops where the rail starts instead of running under it.
+  // The rail is fixed over everything now and no longer slides away, so a pane
+  // the full width of the screen would have that strip of its left edge covered
+  // for as long as it is open. Here rather than in the pane's own stylesheet:
+  // it is the same measurement as the slide above and the two have to agree.
+  //
+  // Below tablet the rail is not drawn, and 80px off a phone is a fifth of it.
+  .nsc-detail-pane {
+    @include respond-to("tablet") {
+      flex-basis: calc(100vw - var(--rail));
+    }
+  }
+
+  // --- Index pane: three columns --------------------------------------------
+
+  .index-pane {
+    // Containing block for column 1, which is lifted out of the flow from
+    // tablet up and laid over the scroller.
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    // Below tablet the pane itself scrolls, so the identity block scrolls away
+    // instead of holding half the viewport hostage above the content.
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+
+    @include respond-to("tablet") {
+      flex-direction: row;
+      overflow: hidden;
+    }
+  }
+
+  // Column 1's box. Its contents belong to the fixed-column component; the
+  // width lives here because the divider is measured against it.
+  //
+  // From tablet up it sits ON TOP of the scroller rather than beside it, and it
+  // takes the whole left half — not --col-fixed, which is where the CONTENT
+  // under it starts. So the identity runs over the thumbnail column rather than
+  // stopping short of it, and the two halves of the screen are the identity and
+  // the work rather than three columns.
+  .pane-fixed {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: 2rem var(--gutter);
+    border-bottom: var(--rule);
+
+    // Below tablet the identity is the first screen and nothing else: a full
+    // fold, with .fixed-identity's own centring putting the block in the middle
+    // of it. svh, so the iOS address bar showing or hiding does not resize it
+    // mid-scroll; vh first for anything that does not know svh.
+    @include respond-to-max("tablet") {
+      min-height: 100vh;
+      min-height: 100svh;
+    }
+
+    @include respond-to("tablet") {
+      // Fixed: full height, never scrolls, half the screen. No border against
+      // column 2 — the two read as one half.
+      position: absolute;
+      z-index: 2;
+      top: 0;
+      left: 0;
+      width: 50vw;
+      height: 100%;
+      overflow: hidden;
+      // Just past the black section rail rather than well clear of it. --rail is
+      // that bar's width, declared on this same element in fixed-column.scss, so
+      // the two cannot fall out of step: widen the bar and the identity moves
+      // with it. The two ARE up together — the identity has not always finished
+      // fading when a band lights the rail — so this has to clear it.
+      padding: 2.5rem 2rem 2.5rem calc(var(--rail, 5rem) + 0.25rem);
+      border-bottom: 0;
+    }
+
+    // NO backdrop. There was one — a sheet of --color-bg across this column,
+    // faded by --identity-fade — giving the identity an opaque ground while it
+    // was up. It cost more than it bought.
+    //
+    // This column is laid OVER the scroller and shares the left half with the
+    // projects media column, so anything opaque here hides what passes behind
+    // it: first the Work history years, which read as fading IN as the cover
+    // faded OUT, and then the first project thumbnail, which begins its slide
+    // at `top 95%` with most of the identity's fade still to run. Narrowing the
+    // sheet fixed the years, because they sit at the far side of the column. It
+    // could not fix the thumbnail, which starts at the same x the name does and
+    // so cannot be cleared by any width.
+    //
+    // Transparent, the identity is simply read over the page. That is only a
+    // question at all while the two share the screen, and by then the identity
+    // is most of the way gone.
+  }
+
+  // Column 1 is laid OVER the scroller, so with pointer events on it is a dead
+  // half of the screen: the wheel lands on a box that does not scroll and the
+  // pane underneath never moves. It is a backdrop, and takes no events at all.
+  .pane-fixed {
+    pointer-events: none;
+    // Fades back out as the last band comes up, so Contact reads the way the
+    // top of the page does: no rail, no identity, nothing beside it. Written by
+    // the same scroll pass that writes --identity-fade.
+    opacity: var(--column-fade, 1);
+  }
+
+  // Not just transparent: hidden, so the hamburger inside it stops being a
+  // target once there is nothing to see.
+  &.is-column-hidden .pane-fixed {
+    visibility: hidden;
+  }
+
+  // The scroller. It spans the WHOLE pane and runs under column 1 rather than
+  // starting after it, so content is free to be wider than column 2 and to pass
+  // beneath the fixed column. Shared with the detail pane, which scrolls its own
+  // body.
+  .pane-scroll {
+    flex: 1 1 auto;
+    min-width: 0;
+
+    // Only the scroller from tablet up; below that .index-pane has the job.
+    // NOTE: ScrollTrigger is pointed at this element, so any re-enabled
+    // scroll-driven tween needs the mobile scroller swapped to .index-pane.
+    @include respond-to("tablet") {
+      width: 100%;
+      height: 100%;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+    }
+  }
+
+  // No horizontal padding: the columns carry their own. The single inset is the
+  // width of column 1, so the bands keep the exact measure and position they had
+  // when the scroller began after that column instead of under it.
+  .scroll-inner {
+    position: relative;
+
+    @include respond-to("tablet") {
+      padding-left: var(--col-fixed);
+    }
+  }
+
+  // Where the divider goes. What it is — its width, its stroke, the fact that
+  // it is a line at all — belongs to the elastic-line component; this only puts
+  // it on the halfway line, column 1's width plus --col-media, and under column
+  // 1 in the stack.
+  //
+  // height: 100%, NOT top/bottom: 0. An svg is a replaced element: pinning both
+  // edges leaves its height auto, and an auto height resolves off the viewBox
+  // ratio instead of stretching — at a 500x1000 viewBox and a 500px width that
+  // is a 1000px line hanging past the bottom of a 900px screen. An explicit
+  // height is what actually makes it end on the bottom edge, and it also stops
+  // the viewBox the script writes from feeding off its own output.
+  //
+  // Above column 1, not under it. The line sits exactly on 50vw, which is the
+  // column's right edge, and its box reaches half a throw either side of that —
+  // so under the column, every wiggle to the LEFT disappeared behind the
+  // identity's backdrop. It takes no pointer events, so being on top costs
+  // nothing; narrowing the column to dodge it would have moved the halfway line
+  // the whole layout is measured from.
+  .column-rule {
+    display: none;
+
+    @include respond-to("tablet") {
+      display: block;
+      position: absolute;
+      z-index: 3;
+      top: 0;
+      left: calc(var(--col-fixed) + var(--col-media));
+      height: 100%;
+    }
+  }
+
+  // --- Band layout ----------------------------------------------------------
+  // The grid every band sits in. Bands own their contents, not their columns.
+
+  // Exactly one viewport tall: whatever follows is only reachable by scrolling.
+  .band.is-fold {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 100svh;
+
+    @include respond-to("tablet") {
+      display: grid;
+    }
+  }
+
+  .band {
+    display: grid;
+    grid-template-columns: 1fr;
+    padding: 3.5rem 0;
+
+    &:first-of-type {
+      border-top: 0;
+    }
+
+    @include respond-to("tablet") {
+      // Same measure as the divider, no gap — the boundary is exactly here.
+      grid-template-columns: var(--col-media) 1fr;
+      padding: 5rem 0;
+    }
+  }
+
+
+  // Column 3 of a band: the content. Pinned to the second track rather than
+  // left to auto-place — most bands have no label, and a lone child would
+  // otherwise land in the narrow column 2 and spill across the divider.
+  .band-content {
+    min-width: 0;
+    padding: 0 var(--gutter);
+
+    @include respond-to("tablet") {
+      grid-column: 2;
+      padding: 0 var(--gutter) 0 3rem;
+    }
+
+    // Projects span both columns so their entries can define the same grid and
+    // land against the divider themselves.
+    &.is-full {
+      padding: 0;
+
+      @include respond-to("tablet") {
+        grid-column: 1 / -1;
+        padding: 0;
+      }
+    }
+  }
+
+
+}

@@ -1,0 +1,15 @@
+---
+// One word of a RunLine and the readings it cycles through.
+//
+// The box is held at the width of the LONGEST reading, by a copy of that word
+// sitting in the flow with nothing drawn. Without it every word after this one
+// would shift each time a shorter or longer reading came up.
+interface Props {
+  words: string[];
+}
+
+const { words } = Astro.props;
+const longest = words.reduce((a, b) => (b.length > a.length ? b : a), words[0]);
+---
+
+<span class="run-word" data-words={JSON.stringify(words)}><span class="word-sizer" aria-hidden="true">{longest}</span><span class="word-text">{words[0]}</span></span>

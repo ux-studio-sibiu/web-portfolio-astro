@@ -1,0 +1,181 @@
+@use "@/styles/breakpoints" as *;
+
+// One element's share of the identity fade. --identity-fade is written by the
+// showcase on scroll and runs 1 (top of the page) down to 0 (gone); an element
+// given a slice of it is whole above $hi, gone below $lo, and crossing in
+// between.
+//
+// The three parts of the identity take a slice each in bottom-to-top order, so
+// the block empties from the blurb upwards instead of dimming as one flat sheet.
+@mixin fade-slice($lo, $hi) {
+  opacity: clamp(0, calc((var(--identity-fade, 1) - #{$lo}) / #{$hi - $lo}), 1);
+}
+
+// How much of the fade one element takes, and how far apart their starts are.
+// The step is WIDER than the span, which is the whole point: each one is gone
+// before the next begins to go, so the three read as three, one after another,
+// rather than as one long dissolve. Three steps of these land the last one on
+// exactly 0 — there is no fade left over at the end.
+$fade-span: 0.32;
+$fade-step: 0.34;
+
+// Which of the three an element is, counting from the BOTTOM of the block: 0
+// goes first.
+@mixin fade-order($index) {
+  $hi: 1 - $fade-step * $index;
+  @include fade-slice($hi - $fade-span, $hi);
+}
+
+// Contents of column 1. The column's own box — width, padding, position, and
+// the pointer-events lockout once faded — belongs to the showcase shell, since
+// the width is what the divider is measured against.
+.nsc-fixed-column {
+  // How wide the identity is allowed to be: the content width left in this half
+  // once the Work history years have been given room to scroll past. Everything
+  // in the column is held to it — the name, the blurb, and the white backdrop
+  // behind them, which is the one that actually matters. That backdrop is
+  // opaque and it fades with the identity, so anything it covers is invisible
+  // until the identity goes: at full width it hid the years outright, and they
+  // appeared to fade IN as the cover faded OUT.
+  //
+  // Measured off the half-way line, not off --col-media: the years are
+  // right-aligned inside that column, but the column starts at --col-fixed, and
+  // --col-fixed + --col-media is 50vw by definition. What is taken off it:
+  //
+  //   3rem      the padding the years are right-aligned against
+  //   6.5rem    air between them and the identity
+  //   2.25em    the widest year, four figures at --year-size
+  //   --rail    the column's own left padding, the black bar plus its hairline
+  //
+  // The air is deliberately generous — the years are the only thing that
+  // crosses this half while the cover is up, and at 1.5rem they read as though
+  // they were fouling the name even where they cleared it.
+  --identity-measure: calc(
+    50vw - 9.5rem - 2.25 * var(--year-size) - var(--rail, 5rem) - 0.25rem
+  );
+
+  // The identity fades as one unit, so the whole group carries the opacity
+  // rather than each part carrying its own. Positioned only to sit above the
+  // column's backdrop, which is a pseudo-element and would otherwise paint over
+  // it — see .pane-fixed in showcase.scss.
+  .fixed-identity {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    // Centred on the column, which is the height of the fold — so the identity
+    // sits in the middle of the first screen rather than hanging off its top.
+    //
+    // Not quite the middle: the block centres within the column LESS the padding
+    // below, so it ends up half that padding above true centre — about a quarter
+    // of the gap it would otherwise have above it. In vh rather than rem so the
+    // offset keeps its proportion as the fold gets taller.
+    justify-content: center;
+    padding-bottom: 12vh;
+    flex: 1;
+    min-height: 0;
+  }
+
+
+  .fixed-label {
+    // Last of the three to go, being the topmost.
+    @include fade-order(2);
+
+    // Indented off the column's own gutter, so the line the identity starts on
+    // is not the line everything under it starts on.
+    margin: 0 0 0 10px;
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .fixed-name {
+    @include fade-order(1);
+
+    margin: 1.5rem 0 0;
+    // Below tablet column 1 is the full pane width.
+    font-size: clamp(2.475rem, 13.2vw, 4.95rem);
+    line-height: 0.85;
+    letter-spacing: -0.05em;
+    font-weight: 800;
+    text-transform: uppercase;
+
+    @include respond-to("tablet") {
+      // Two limits, whichever is smaller.
+      //
+      // FILL  the whole left half less 2rem of padding either side. The divisor
+      //       is the width-to-size ratio of the longest line (TURCANU) in
+      //       Archivo 800 — measured at 4.92 — plus slack, and then a further
+      //       tenth on top, which is what holds the name off the divider.
+      //       Raising it is how the name comes down without the column moving.
+      //       Both divisors carry a tenth off their measured values, which is
+      //       the 10% the name was last taken up by.
+      //
+      // CLEAR the Work history years, which scroll straight past the name —
+      //       --identity-measure above is the room left for it. Divided by
+      //       4.845, TURCANU's width-to-size ratio, because what is being
+      //       limited is a width and what is being set is a size, and TURCANU
+      //       is the longer of the two lines.
+      font-size: min(
+        calc((50vw - 4rem) / 5.18),
+        calc(var(--identity-measure) / 4.4)
+      );
+    }
+  }
+
+  .name-mask {
+    display: block;
+    overflow: hidden;
+    padding-bottom: 0.03em;
+
+    > span {
+      display: block;
+    }
+  }
+
+  // Both lines are set at the same size. Setting TURCANU down to match RAZVAN's
+  // WIDTH was tried — the block squares up on paper, and it does not read: the
+  // name stops looking like one name at one size and starts looking like two
+  // words that happen to be stacked. The ragged right edge is the lesser
+  // problem. Room for the Work history years comes out of --identity-measure
+  // above instead.
+
+  .fixed-blurb {
+    // First to go: it is the lowest of the three on the page.
+    @include fade-order(0);
+
+    margin: 2rem 0 0;
+    // The small-copy voice, the same one the entry points take — see the note
+    // in src/styles/_devices.scss. The name above it stays in Archivo, so the
+    // block reads as a title with a caption under it rather than as one lump.
+    //
+    // A step down from the 1.125rem it held in Archivo, but NOT all the way to
+    // the 0.8rem of the points: this is the lede, and matching them exactly
+    // would leave the two tiers indistinguishable.
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--color-ink);
+
+    @include respond-to("tablet") {
+      // Not the whole column: half the screen is far past the point where a
+      // line is still readable, and the paragraph running wider than the name
+      // above it is what made the block look unset.
+      //
+      // Measured off the NAME rather than in `ch`, so the two stay locked
+      // together at every width instead of drifting apart as the type scales.
+      // The name is sized at (50vw - 4rem) / 5.7 and TURCANU's ink is 4.92 of
+      // that — see .fixed-name — so the full name spans (50vw - 4rem) * 0.863.
+      // This is 83% of that span: short of the last letter, which is where the
+      // line wants to fall.
+      //
+      // Capped by --identity-measure as well, because on a narrower screen 83%
+      // of the name is still wider than the room the years leave — and a line
+      // running past the backdrop would be the one thing in the column that is
+      // not covered by it.
+      max-width: min(calc((50vw - 4rem) * 0.72), var(--identity-measure));
+      font-size: 1rem;
+    }
+  }
+}

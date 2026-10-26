@@ -1,0 +1,23 @@
+---
+import TileReveal from "@/components/tile-reveal/TileReveal.astro";
+import "./detail-pane.scss";
+
+// Right pane of the track. Chrome is the back button and nothing else — the
+// per-project body owns the whole surface, and for embeds that means a
+// full-bleed iframe.
+//
+// Served closed and `inert`, so nothing in it can be focused or clicked while
+// it is off screen. Opening it (lesson 07) is a script's job: it clones the
+// project's <template> into .pane-scroll and lifts the `inert`.
+---
+
+<section class="showcase-pane detail-pane nsc-detail-pane" inert>
+  <button type="button" class="detail-back">
+    <span class="back-arrow" aria-hidden="true">&larr;</span> Back
+  </button>
+
+  <div class="pane-scroll"></div>
+
+  {/* Covers the frame for the length of the slide, then dissolves off it. Sits over the back button as well, so the pane arrives as one surface rather than a button floating on a grid. */}
+  <TileReveal />
+</section>

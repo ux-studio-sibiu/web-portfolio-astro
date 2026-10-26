@@ -1,0 +1,30 @@
+---
+import RunLine from "@/components/run-line/RunLine.astro";
+import RunWord from "@/components/run-line/RunWord.astro";
+import Highlight from "@/components/highlight/Highlight.astro";
+import "./fixed-column.scss";
+
+// Column 1 of the index pane: fixed, never scrolls, and carries the identity —
+// label, name and blurb — faded as ONE unit by --identity-fade, which the
+// showcase writes on scroll (lesson 09).
+//
+// The section rail and the menu button are their own fixed elements, laid over
+// this one rather than inside it (lesson 06); what is left here of them is the
+// left padding that clears the rail.
+---
+
+<aside class="pane-fixed nsc-fixed-column">
+  <div class="fixed-identity">
+    <p class="fixed-label">
+      <RunLine><RunWord words={["Creative", "Frontend"]} />{" "}<RunWord words={["Developer", "Engineer"]} /></RunLine>
+    </p>
+    <h1 class="fixed-name">
+      <span class="name-mask"><span>Razvan</span></span>
+      <span class="name-mask"><span>Turcanu</span></span>
+    </h1>
+    <p class="fixed-blurb">
+      Passionate about craft, I <Highlight pinned>bridge design and dev</Highlight> to build polished, practical interfaces.
+      I enjoy putting together <Highlight pinned delay={250}>creative custom designs</Highlight>, using AI tools to move from quick prototypes to finished products.
+    </p>
+  </div>
+</aside>

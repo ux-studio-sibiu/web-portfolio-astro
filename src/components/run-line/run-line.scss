@@ -1,0 +1,33 @@
+// Nothing is drawn here — the effect is the characters themselves, and in a
+// monospace face a same-length scramble is the same size as the word it stands
+// in for.
+//
+// No pointer events either. This runs on a timer rather than on hover, which is
+// what lets the column above the scroller stay entirely click-through — see
+// .pane-fixed.
+.nsc-run-line {
+  display: inline-block;
+  // The readings are different lengths, so the line's own width changes; it must
+  // not be allowed to find a new place to break while that happens.
+  white-space: nowrap;
+}
+
+// Held at the width of its longest reading by the sizer inside it, so a shorter
+// word leaves a gap rather than pulling everything after it to the left.
+.run-word {
+  position: relative;
+  display: inline-block;
+}
+
+// In the flow, and the only thing here that takes up room — but never drawn.
+// `visibility` rather than `opacity`, so it cannot be selected or read out.
+.word-sizer {
+  visibility: hidden;
+}
+
+// Out of the flow, over the sizer. This is the one the ticker writes to.
+.word-text {
+  position: absolute;
+  top: 0;
+  left: 0;
+}

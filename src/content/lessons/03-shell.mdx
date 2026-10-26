@@ -1,0 +1,193 @@
+---
+number: 3
+title: The shell and the text-only bands
+summary: The two-pane frame, the fixed identity column, the closed detail pane and four bands ported as plain Astro components. Their markup matches the Next build exactly, with no JavaScript.
+---
+
+Open `/`. The portfolio is starting to look like itself: the identity on the left, the divider on
+the halfway line, and Core technologies, Work history, Skills and Contact scrolling on the right.
+The Projects and Experiments bands are still missing (lessons 04–05), and so is everything that
+moves: the identity doesn't fade yet and the rail isn't there. What *is* there was rendered at
+build time and ships **no JavaScript**.
+
+## How the page is put together
+
+```astro
+<Portfolio>              ← layout: <html>, fonts, globals.scss
+  <Showcase>             ← the frame: track, index pane, fixed column, divider, detail pane
+    <BandCoreTechnologies />
+    <BandWorkHistory />
+    <BandSkills />
+    <BandContact />
+  </Showcase>
+</Portfolio>
+```
+
+`Showcase.astro` puts its children into `.scroll-inner` with a plain `<slot />`. The bands are written
+in page order in `index.astro`, so adding or reordering one is a single edit. That's the same idea
+as the old `ShowcaseLinear` JSX, with one difference: Showcase can't *inspect* its children, only
+place them (gotcha G1, lesson 04).
+
+Each component is a folder: `BandSkills.astro` + `band-skills.scss`. The `.scss` files are copied
+from the Next app with only the `@use` path changed (`@/app/styles/` → `@/styles/`).
+
+## Components and props
+
+```astro
+---
+interface Props {
+  pinned?: boolean;
+  delay?: number;
+  alwaysSelected?: boolean;
+}
+const { pinned, delay, alwaysSelected } = Astro.props;
+---
+<span class:list={["highlight-on-scroll", { pinned, "is-selected": alwaysSelected }]}
+      style={delay ? { "--sweep-delay": delay } : undefined}>
+  <span class="highlight-ink"><slot /></span>
+</span>
+```
+
+That's `Highlight.astro` (written on one line in the real file, see whitespace below). Compared with
+the React version:
+
+| React (old) | Astro (now) |
+|---|---|
+| `function Highlight({ pinned, delay })` | `interface Props` + `Astro.props` in the frontmatter |
+| `{children}` | `<slot />` |
+| `` className={`a${x ? " b" : ""}`} `` | `class:list={["a", { b: x }]}` |
+| `style={{ "--sweep-delay": d } as CSSProperties}` | `style={{ "--sweep-delay": d }}` (an object works, no cast needed) |
+| `{/* comment */}` | `{/* comment */}` (same, and not sent to the browser) |
+| `"use client"` + `useState` | nothing: the component ends at build time |
+
+Two smaller things:
+
+- **`class` is a reserved word in JS**, so a component that accepts a `class` prop renames it on the
+  way in: `const { class: className } = Astro.props;` (see `ElasticLine.astro`).
+- **HTML comments `<!-- -->` are shipped** to the browser. JSX-style `{/* */}` comments are dropped.
+  The ported comments use the second form.
+
+## Slots: default, named, fallback
+
+Only the default slot is used in this lesson. The others are worth knowing:
+
+```astro
+<!-- Card.astro -->
+<article>
+  <header><slot name="title">Untitled</slot></header>  ← named, with fallback content
+  <slot />                                             ← default
+  {Astro.slots.has("footer") && <footer><slot name="footer" /></footer>}
+</article>
+
+<!-- using it -->
+<Card>
+  <h3 slot="title">Hello</h3>
+  <p>Body text</p>
+</Card>
+```
+
+- **Fallback content** inside `<slot>` renders when nothing fills it.
+- **`Astro.slots.has("name")`** lets a component skip a wrapper (here, `<footer>`) when that slot is
+  empty. React would check `props.footer`.
+- `Base.astro` uses a named slot for `<head>` content (lesson 02).
+
+## Templates: `.map()`, conditionals, fragments
+
+The bands are hand-written lists, so there's no `.map()` in them yet. Lesson 05 maps over the projects
+collection. The syntax is JSX's:
+
+```astro
+{items.map((item) => <li>{item.title}</li>)}
+{item.href && <a href={item.href}>View</a>}
+{item.thumb ? <img src={item.thumb} /> : <span class="placeholder" />}
+<>…</>   or   <Fragment>…</Fragment>   ← several elements, no wrapper
+```
+
+One difference: React escapes everything and offers `dangerouslySetInnerHTML`. Astro offers
+**`set:html={string}`** to inject raw HTML. It's useful for a string you trust (an SVG file's contents,
+say) and dangerous for anything a user wrote. Nothing in the portfolio needs it.
+
+## Whitespace: why the output matches JSX exactly
+
+With `compressHTML: "jsx"` (Astro 7's default, lesson 01), whitespace follows JSX rules: a line break
+plus indentation between tags disappears, and text on two lines is joined by one space. So the ported
+copy keeps its `{" "}` exactly where the JSX had it:
+
+```astro
+<Highlight>long-standing</Highlight> contribution for{" "}
+<button type="button" class="inline-link" data-scroll-to="advisor">accounting SaaS</button>{" "}
+for nordic markets…
+```
+
+Drop either `{" "}` and the words run together, as they would in React. `Highlight.astro` is written
+on one line for the same reason: a line break between its two `<span>`s would be harmless, but one
+*inside* `highlight-ink` would add a space inside the black band.
+
+## What works without JavaScript, and what waits
+
+- **The Work history entries open and close.** They're native `<details>`/`<summary>`, with no state.
+  In the Next app this was the only part of the band that worked before hydration. Here the whole band
+  works that way.
+- **The highlights sweep while you scroll**, in browsers with CSS scroll-driven animations (Chrome,
+  Edge, Safari 26). `globals.scss` does that with `animation-timeline: view()`. The fallback script
+  for Firefox comes in lesson 06. The two **pinned** phrases in the blurb stay unswept, because their
+  progress (`--sweep-px`) is written by the scroll sequence (lesson 09).
+- **"accounting SaaS" and "white-label product"** are buttons carrying `data-scroll-to="advisor"`.
+  They do nothing yet: lesson 06 adds the script. A `data-*` attribute is how a static component hands
+  information to a later script (gotcha G3).
+- **The detail pane** is in the page, off screen and `inert` (nothing in it can be focused). Lesson
+  07 opens it.
+- **Static stand-ins** for things that move later: the divider is served as a straight line
+  (`ElasticLine`, pulled by the cursor in lesson 10), the label shows "Creative Developer" (`RunLine`
+  scrambles it in lesson 10), and the tile cover (`TileReveal`) is an empty `<div>`.
+
+## Checking the port: `scripts/compare-markup.mjs`
+
+"Looks the same" isn't a check. This lesson adds a small script that takes the Next build's HTML and
+this build's HTML, cuts out each component root (`.nsc-fixed-column`, `.nsc-band-skills`, …) and
+compares them after normalising the differences that don't matter: comments, `data-astro-cid-*`,
+`open=""` vs `open`, `&larr;` vs `←`, and runs of whitespace. Whitespace itself isn't ignored, so a
+missing `{" "}` fails.
+
+```bash
+node scripts/compare-markup.mjs
+```
+
+It reads `../web-portfolio/.next/server/app/index.html` by default. The `.next` build there is from
+14 October and older than the latest content, so run `npm run build` in `web-portfolio` first (that
+only rewrites its own gitignored `.next` folder). For this lesson, all seven roots come out **SAME**:
+the fixed column, the four bands, the detail pane and the divider.
+
+The first version of this script reported SAME for everything while comparing nothing. A `\b` in a
+regex got lost, so both sides came back "not found", and two "not found"s are equal. It now reports
+**MISSING** when it can't find an element, and it prints the length it compared. A check that can't
+fail isn't a check.
+
+## Files in this lesson
+
+- `src/pages/index.astro`: the page, composed from the shell and the bands
+- `src/components/showcase/Showcase.astro` + `showcase.scss`: the frame
+- `src/components/fixed-column/FixedColumn.astro` + `fixed-column.scss`: the identity
+- `src/components/run-line/RunLine.astro`, `RunWord.astro` + `run-line.scss`: the label, static
+- `src/components/highlight/Highlight.astro`
+- `src/components/elastic-line/ElasticLine.astro` + `elastic-line.scss`: the divider, straight
+- `src/components/detail-pane/DetailPane.astro` + `detail-pane.scss`: closed and inert
+- `src/components/tile-reveal/TileReveal.astro` + `tile-reveal.scss`: empty for now
+- `src/components/band-core-technologies/BandCoreTechnologies.astro`
+- `src/components/band-work-history/BandWorkHistory.astro`, `ToggleMark.astro` + `band-work-history.scss`
+- `src/components/band-skills/BandSkills.astro` + `band-skills.scss`
+- `src/components/band-contact/BandContact.astro` + `band-contact.scss`
+- `public/cv/*.pdf`: both CVs, copied
+- `scripts/compare-markup.mjs`: the 1:1 check
+- `src/content/lessons/03-shell.mdx`: this page
+- `ROADMAP.md`: lesson 03 ticked
+
+## Review checklist
+
+- [ ] `/` shows the identity, the divider and the four bands, and the right half scrolls while the left stays put.
+- [ ] The Work history entries open and close with JavaScript disabled in DevTools.
+- [ ] "Download CV" opens the PDF.
+- [ ] View source: no `<script>` tag, and no HTML comments from the components.
+- [ ] After `npm run build` in both repos, `node scripts/compare-markup.mjs` prints SAME seven times.
+- [ ] Delete one `{" "}` in `BandWorkHistory.astro`, rebuild, and watch the script catch it. Then restore it.
+- [ ] Compare a few widths against the old site (phone, tablet, desktop). Only the missing bands and motion should differ.
