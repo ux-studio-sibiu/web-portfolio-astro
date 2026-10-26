@@ -1,0 +1,127 @@
+---
+number: 9
+title: The scroll sequence
+summary: The identity fades as Projects arrives, the rail lights up with whichever band owns it, the column fades out over Contact, and the two pinned highlights in the blurb finally sweep. Measured from the DOM, no GSAP, and sampled at 50 scroll positions against the Next build with identical results.
+---
+
+Scroll the page now and it behaves like the old one. The name and blurb stay up through Work history
+and fade as the first project arrives. The black rail comes up with "Projects", then "Experiments",
+"Skills" and "Contact". The menu button inverts on the black. Over Contact the whole column fades out
+and the button goes back to ink. And the two highlights in the blurb, empty since lesson 03, sweep as
+you scroll.
+
+None of it uses a library. It's the scroll effect from `ShowcaseLinear`, moved into
+`showcase/scroll-sequence.ts`, plus the wheel forwarding in `showcase/forward-wheel.ts`.
+
+## Measure, then react to scroll
+
+The sequence works in two passes.
+
+**`measure()`** runs on load, on resize and whenever the content changes height. It finds the bands
+(`[data-section]`) and works out, **in pixels of `scrollTop`**, where things happen:
+
+- `fadeStart → fadeEnd`: the identity fades out, finishing exactly as the handover band's anchor
+  crosses the **trigger line** (half the pane's height);
+- `outroStart → outroEnd`: the whole column fades out as the last band (Contact) comes up.
+
+**`onScroll()`** runs on every scroll. It only does arithmetic against those numbers, writes a few CSS
+custom properties and works out which band owns the title:
+
+| Written | Where | Read by |
+|---|---|---|
+| `--identity-fade` (1 → 0) | the column | the three parts of the identity, each fading in its own slice (`fixed-column.scss`) |
+| `--sweep-px`, `--sweep-over` | the column | `.highlight-on-scroll.pinned` in `globals.scss`: the blurb's two highlights |
+| `--column-fade` (1 → 0) | the column **and** the rail | both fade out together over Contact |
+| `.is-column-hidden` | the shell | hides the column completely once faded, so it can't be clicked |
+| `section`, `lit` | reported to the controller | `render()`: rail title, rail up, button inverted |
+
+All the knobs are **fractions of the pane height**, not pixels. That's the point the original comment
+makes: band positions move with viewport size and text reflow, and a fixed 2000px threshold "landed
+1382px early at 1280x720".
+
+### Writing on two small boxes, not the shell
+
+The custom properties are written on the **column** and the **rail**, not on the shell around
+everything. Custom properties are inherited, so every write re-resolves style for the whole subtree
+below the element. From the shell that was 338 nodes and 2.4 ms per scroll event; on these two boxes
+it's 0.3 ms. That measurement came from the Next version and still applies, so the port kept it.
+
+### Two attributes a band can set
+
+- **`data-identity-handover`** on Projects: the identity stays up through Work history (which is read
+  over the name) and gives way when Projects arrives. Bands before the handover light no rail title.
+- **`data-section-anchor`** on the first project entry: a band's box has padding, so its top crosses the
+  line before anything visible does. The band nominates the element to time off instead.
+
+Both were set by the bands in lesson 05, and nothing read them until now. That's the `data-*` handoff
+from build to script again (G3).
+
+### Report changes, not frames
+
+`onScroll` runs dozens of times a second, but `section` and `lit` change maybe ten times on a full
+scroll. `scrollSequence` only calls `onChange` when one of them actually changes, and only then does
+the controller update its state and call `render()`. React's `setState` bailed out of equal values for
+you. Here it's three lines in `report()`.
+
+## Re-measuring: `ResizeObserver`
+
+Scroll offsets are only right until something reflows: fonts swapping in, a picture decoding, a Work
+history entry opening or closing. A window `resize` doesn't fire for any of those, because the content
+changed height **inside** a scroller of our own. A `ResizeObserver` on the scroller and on its content
+does, and it re-measures. Lesson 10 also hangs `ScrollTrigger.refresh()` off it, through the `onResize`
+option that's already in place.
+
+## Wheel forwarding
+
+The fixed column is laid **over** the scroller with `pointer-events: none`, so the wheel falls through
+to the pane. But the rail button takes pointer events, and it has no scrollable ancestor: `.pane-scroll`
+is its *sibling*. Over it, a wheel event would scroll nothing. `forwardWheel()` catches the wheel there
+and adds `deltaY` to the pane's `scrollTop` by hand, converting lines and pages (`deltaMode` 1 and 2)
+into pixels.
+
+It needs **`{ passive: false }`**. Wheel listeners are passive by default, and `preventDefault()` on a
+passive listener is silently ignored.
+
+## How it was checked
+
+Two things worth knowing about testing scroll code:
+
+1. **A hidden page fires no scroll events.** The first probe ran in a browser tab that wasn't
+   visible, and nothing updated, not even `--sweep-px` at the very bottom. The code was fine:
+   browsers fire `scroll` during the rendering steps, and a background page doesn't render. The probe
+   dispatches `new Event("scroll")` itself after each jump.
+2. **Compare with the original, don't eyeball it.** The same probe ran on the Next build and on this one
+   at the same viewport (1024 px wide). It sampled `scrollTop` every 250 px, 50 positions from top to
+   bottom, recording the identity fade, the column fade, the rail title and the button inversion. **All
+   50 rows matched**, and so did the scroll height (12,317 px). Some samples, from both:
+
+| scrollTop | identity | column | rail | button |
+|---|---|---|---|---|
+| 3000 | 1.00 | 1.00 | — | |
+| 3250 | 0.43 | 1.00 | — | |
+| 3500 | 0.00 | 1.00 | Projects | inverted |
+| 6500 | 0.00 | 1.00 | Experiments | inverted |
+| 11000 | 0.00 | 0.87 | Skills | inverted |
+| 11250 | 0.00 | 0.13 | Skills | |
+| 11500 | 0.00 | 0.00 | Contact | |
+
+Wheel forwarding was checked by dispatching a 120 px wheel event on the column and a 3-line one on the
+rail button: the pane scrolled 168 px (120 + 3 × 16), and both events were `defaultPrevented`.
+
+## Files in this lesson
+
+- `src/components/showcase/scroll-sequence.ts`: measure + onScroll + ResizeObserver, reports `section` and `lit`
+- `src/components/showcase/forward-wheel.ts`: wheel forwarding from the fixed elements
+- `src/components/showcase/showcase-controller.ts`: starts both, puts `section`/`lit` in the state, cleans up on disconnect
+- `src/content/lessons/09-scroll-sequence.mdx`: this page
+- `ROADMAP.md`: lesson 09 ticked
+
+## Review checklist
+
+- [ ] Scroll from the top: the identity stays through Work history and fades as the first project arrives.
+- [ ] The rail comes up with "Projects" and the button inverts. The title changes at Experiments, Skills and Contact.
+- [ ] Over Contact the column and the rail fade out, and the button goes back to ink and can still open the menu.
+- [ ] The two highlights in the blurb sweep as you start scrolling, the second one a little later.
+- [ ] Mouse wheel over the rail button scrolls the page.
+- [ ] Below tablet width the identity simply scrolls away with the page, and the rail doesn't light.
+- [ ] Open and close a Work history entry, then scroll: the section changes still happen at the right bands.

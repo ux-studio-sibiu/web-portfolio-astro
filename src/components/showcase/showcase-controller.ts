@@ -1,5 +1,7 @@
 import { scrollBehavior } from "@/scripts/motion";
 import { PaneHistory } from "./pane-history";
+import { scrollSequence } from "./scroll-sequence";
+import { forwardWheel } from "./forward-wheel";
 
 // <nsc-showcase>: the behaviour of the shell, as a custom element wrapped
 // around its markup. It is where ShowcaseLinear's React state went — not into
@@ -22,8 +24,11 @@ import { PaneHistory } from "./pane-history";
 //              back past it (pane-history.ts), so the browser's back button
 //              closes the pane too. The pane follows the history: it closes on
 //              `popstate`, whichever way the history was moved.
-//
-// Lesson 09 adds the scroll sequence, which is what will set `section` and `lit`.
+//   scroll     (lesson 09) the identity fade, which band owns the rail's title,
+//              the column fading out over Contact (scroll-sequence.ts) — it
+//              reports `section` and `lit`, which render() writes to the rail;
+//              and the wheel forwarded to the pane from the few fixed things
+//              that take pointer events (forward-wheel.ts)
 
 type State = {
   // A project is showing. Driven by open/close.
@@ -33,7 +38,7 @@ type State = {
   // half way across. Replaced on the next open.
   open: string | null;
   // Which band owns the rail title, and whether the rail's black is actually
-  // on screen. Both stay at their top-of-page values until lesson 09.
+  // on screen. Both reported by the scroll sequence.
   section: string | null;
   lit: boolean;
 };
@@ -78,6 +83,25 @@ class Showcase extends HTMLElement {
     const { signal } = this.#wiring;
 
     this.#buildSections();
+
+    const column = el.indexPane.querySelector<HTMLElement>(".pane-fixed")!;
+    const stopSequence = scrollSequence({
+      shell: this.querySelector(".nsc-showcase-linear")!,
+      scroller: el.scroller,
+      column,
+      rail: el.rail,
+      onChange: (section, lit) => {
+        this.#state.section = section;
+        this.#state.lit = lit;
+        this.#render();
+      },
+    });
+    const stopWheel = forwardWheel(el.scroller, [column, el.railButton]);
+    // Both clean up with everything else when the element leaves the page.
+    signal.addEventListener("abort", () => {
+      stopSequence();
+      stopWheel();
+    });
 
     el.railButton.addEventListener("click", () => (this.#state.isDetail ? this.close() : el.menu.open()), { signal });
     el.detailPane.querySelector(".detail-back")!.addEventListener("click", () => this.close(), { signal });
