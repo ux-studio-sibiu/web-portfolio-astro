@@ -1,0 +1,54 @@
+---
+import Base from "@/layouts/Base.astro";
+
+// Built to dist/404.html, which static hosts (Vercel among them) serve, with
+// a 404 status, for any URL that matches no file. On Base, not Portfolio: the
+// portfolio's globals lock the page to its own scroller, and this page is just
+// a page. `noindex`, so it never ends up in search results itself.
+//
+// The likeliest way here is an old link to a project that has since been
+// renamed or set to draft, so the way out is the index.
+---
+
+<Base title="Not found — Razvan Turcanu" noindex>
+  <main class="nsc-not-found">
+    <p class="code">404</p>
+    <h1>This page isn't here.</h1>
+    <p>It may have moved, or the link may be old.</p>
+    <p><a href="/">See the portfolio &rarr;</a></p>
+  </main>
+</Base>
+
+<style>
+  .nsc-not-found {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.75rem;
+    min-height: 100svh;
+    max-width: 40rem;
+    margin: 0 auto;
+    padding: 2rem 1.25rem;
+    font-family: system-ui, sans-serif;
+    color: #000;
+  }
+
+  .code {
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    color: #737373;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(2rem, 6vw, 3.5rem);
+    line-height: 1.05;
+    font-weight: 800;
+  }
+
+  a {
+    color: inherit;
+    font-weight: 600;
+  }
+</style>

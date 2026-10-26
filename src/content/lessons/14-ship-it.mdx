@@ -1,0 +1,167 @@
+---
+number: 14
+title: Ship it
+summary: The last lesson. Absolute URLs from `site`, canonical and Open Graph tags per page with a share image for each, a sitemap without the lessons, robots.txt as an endpoint, a 404 page, a README, and what's left for the deploy itself.
+---
+
+The portfolio works. This lesson is about everything **around** it that a real site needs: what a link
+preview shows, what search engines are told, what happens on a wrong URL, and how it gets onto a
+server.
+
+## `site`: the one setting everything else needs
+
+A static page normally links to itself with relative URLs (`/_astro/…`). Some things have to be
+**absolute**, though, because someone else's server reads them: a link preview fetcher (Slack,
+WhatsApp, LinkedIn), a search engine reading a canonical URL, the sitemap. They all need the site's
+origin, which Astro calls **`site`**:
+
+```js
+// astro.config.mjs
+const site =
+  process.env.SITE_URL ??
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:4321");
+
+export default defineConfig({ site, … });
+```
+
+There's no domain yet, so it isn't typed in:
+
+- **`SITE_URL`**, once there's a custom domain, set in Vercel's environment variables;
+- otherwise **`VERCEL_PROJECT_PRODUCTION_URL`**, a variable Vercel sets on every build: the production
+  `*.vercel.app` domain;
+- otherwise **localhost**, so local builds work.
+
+`astro.config.mjs` runs in Node at build time, so `process.env` is just the build machine's
+environment. In components the value is **`Astro.site`** (a `URL`).
+
+## The head of every page
+
+`Base.astro` now writes, for every page that isn't `noindex`:
+
+```html
+<link rel="canonical" href="https://…/work/casedeschise/">
+<meta property="og:url" content="https://…/work/casedeschise/">
+<meta property="og:title" content="casedeschise.ro — Razvan Turcanu">
+<meta property="og:description" content="website for annual 'open house' event, …">
+<meta property="og:image" content="https://…/_astro/case-deschise….jpeg">
+<meta name="twitter:card" content="summary_large_image">
+```
+
+- **The canonical URL** is `new URL(Astro.url.pathname, Astro.site)`: the address search engines should
+  file the page under, whichever one they reached it by.
+- **Open Graph** is what a link preview shows. It's read from the HTML **without running scripts**,
+  which is the reason lesson 13 gave each project a page of its own rather than `?project=`. A query
+  string could never have changed these tags.
+- **`og:image`** is the project's thumbnail, through `getImage()` as a 1200 px JPEG (the width platforms
+  render previews at, and the one format every preview fetcher reads). Projects without a photo
+  thumbnail (the motion diagram, the canvases) use the home image.
+- Lesson pages and the 404 get none of this: they're `noindex`, and they aren't meant to be shared.
+
+### The home share image, made with Chrome headless again
+
+`src/assets/share/home.png` is a screenshot of the page itself at 1200 × 630, the Open Graph size,
+taken with lesson 12's technique and one more flag:
+
+```bash
+chrome --headless=new --window-size=1200,630 --force-prefers-reduced-motion --screenshot=home.png http://localhost:4330/
+```
+
+The first shot caught the label mid-scramble (`FRONTEND ENZ76B<P`). With
+**`--force-prefers-reduced-motion`**, the page shows its resting state: the label on its first reading
+and the blurb's highlights fully drawn, exactly what reduced motion is meant to show. Saved as a palette
+PNG (34 kB source, served as a 79 kB JPEG).
+
+## The sitemap: an integration
+
+```js
+import sitemap from "@astrojs/sitemap";
+
+integrations: [
+  mdx(),
+  sitemap({ filter: (page) => !new URL(page).pathname.startsWith("/lessons") }),
+],
+```
+
+An **integration** is a plugin that hooks into Astro's build. This one runs after every page is
+built, collects their URLs, and writes `sitemap-index.xml` + `sitemap-0.xml`. `filter` gets each page's
+**full URL** and returns whether to keep it. The result is 17 URLs: the home page and the 16 projects.
+The 404 is left out automatically, and the lessons by the filter. `Base` points to it with
+`<link rel="sitemap">`.
+
+`site` is what makes this possible: a sitemap must list absolute URLs.
+
+## `robots.txt`: an endpoint, not a file
+
+```ts
+// src/pages/robots.txt.ts
+export const GET: APIRoute = ({ site }) =>
+  new Response(`User-agent: *\nAllow: /\n\nSitemap: ${new URL("sitemap-index.xml", site)}\n`, …);
+```
+
+A `.ts` file in `src/pages` that exports `GET` is an **endpoint**. In a static build it runs once, and
+whatever it returns is written to `dist/robots.txt`. It can do what a file in `public/` can't: name
+the sitemap by its **absolute** URL (robots.txt requires that) from `site`, instead of a domain typed in by
+hand.
+
+The lessons are deliberately **not** `Disallow`ed. They carry `<meta name="robots" content="noindex">`,
+and a crawler that's forbidden to fetch a page never gets to read that it shouldn't index it. To keep a
+page out of search results, `noindex` is the tool; `Disallow` only stops crawling.
+
+## A 404 page
+
+`src/pages/404.astro` builds to `dist/404.html`, which static hosts (Vercel included, and `astro preview`)
+serve with a **404 status** for any URL that matches no file. It uses `Base` rather than `Portfolio`:
+the portfolio's globals lock the page into its own scroller. The likeliest way to arrive there is an old
+project link, so the way out is the index. Checked: `/no-such-page/` gave a 404 with this page.
+
+## Deploying
+
+Nothing here deploys anything. Publishing is your step. The README has the checklist, and the short
+version is:
+
+1. Import the GitHub repo in **Vercel**. The Astro preset is detected (`npm run build` → `dist`). No adapter
+   and no `vercel.json`: it's a static site.
+2. Set the project's **Node.js version to 22.x**, since Astro 7 needs 22.23+.
+3. Later, with a domain: `SITE_URL=https://…`.
+
+After the first deploy, check a link preview, `/robots.txt`, `/sitemap-index.xml`, a 404, and run
+**PageSpeed Insights** on `/`. That gives the paint timings (LCP and friends) that lesson 12 couldn't
+measure on localhost.
+
+## Where the port ended up
+
+| | Next.js | Astro |
+|---|---|---|
+| JavaScript before interaction (gzip) | 198 kB | 52 kB |
+| First load before interaction | 398 kB + a live iframe | ≈191 kB, no iframe |
+| UI framework in the browser | React 19 + Next runtime | none |
+| Link to one project | — | `/work/<slug>/`, served open, with its own preview |
+| Pinch-zoom | blocked | works |
+| Pages built | 1 | 33 (home, 16 projects, the lessons index and 14 lessons, 404), plus robots.txt and the sitemap |
+
+The markup comparison still holds every component root on `/` to the old site, apart from the one
+intended change (Paint), so the port is checked rather than eyeballed.
+
+## Files in this lesson
+
+- `astro.config.mjs`: `site` from the environment; the sitemap integration
+- `package.json`: `@astrojs/sitemap`
+- `src/layouts/Base.astro`: canonical, sitemap link, Open Graph and Twitter tags
+- `src/layouts/Portfolio.astro`: the share image through `getImage()`
+- `src/components/home/Home.astro`: a project's thumbnail as its share image
+- `src/assets/share/home.png`: the home share image
+- `src/pages/robots.txt.ts`: robots.txt as an endpoint
+- `src/pages/404.astro`
+- `README.md`
+- `src/content/lessons/14-ship-it.mdx`: this page
+- `ROADMAP.md`: lesson 14 ticked
+
+## Review checklist
+
+- [ ] `npm run build` writes `dist/robots.txt`, `dist/sitemap-index.xml`, `dist/sitemap-0.xml` and `dist/404.html`.
+- [ ] `dist/sitemap-0.xml` lists 17 URLs, none under `/lessons/`.
+- [ ] View source on `/work/casedeschise/`: canonical, `og:title`, `og:description` and an `og:image` JPEG.
+- [ ] `SITE_URL=https://example.com npm run build`: every absolute URL above now uses that origin.
+- [ ] `npm run preview`, then open `/anything`: the 404 page.
+- [ ] Lesson pages have `noindex` and no `og:` tags.
+- [ ] After deploying: a `/work/…` link pasted into a chat shows the project's picture and title.

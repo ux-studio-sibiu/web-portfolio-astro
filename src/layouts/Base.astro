@@ -6,9 +6,20 @@ interface Props {
   description?: string;
   // Lesson pages are for us, not for search engines.
   noindex?: boolean;
+  // The picture a shared link shows (Slack, WhatsApp, LinkedIn, X…): a URL on
+  // this site, made absolute below. Pages that are not meant to be shared
+  // leave it out.
+  image?: string;
 }
 
-const { title, description, noindex = false } = Astro.props;
+const { title, description, noindex = false, image } = Astro.props;
+
+// Absolute URLs, from `site` in astro.config.mjs (lesson 14). A link preview
+// is fetched by someone else's server, which has no idea what "/_astro/…" is
+// relative to; and the canonical URL is what search engines file the page
+// under, whichever of its addresses they reached it by.
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const imageUrl = image ? new URL(image, Astro.site) : undefined;
 ---
 
 <!doctype html>
@@ -20,6 +31,23 @@ const { title, description, noindex = false } = Astro.props;
     {description && <meta name="description" content={description} />}
     {noindex && <meta name="robots" content="noindex" />}
     <link rel="icon" href="/icon.jpg" type="image/jpeg" />
+
+    {!noindex && (
+      <>
+        <link rel="canonical" href={canonical} />
+        <link rel="sitemap" href="/sitemap-index.xml" />
+
+        {/* Open Graph: what a link preview shows. Read by the platform's server from the HTML, without running a script — which is why a project needs a page of its own to have a preview of its own (lesson 13). */}
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Razvan Turcanu" />
+        <meta property="og:url" content={canonical} />
+        <meta property="og:title" content={title} />
+        {description && <meta property="og:description" content={description} />}
+        {imageUrl && <meta property="og:image" content={imageUrl} />}
+        <meta name="twitter:card" content={imageUrl ? "summary_large_image" : "summary"} />
+      </>
+    )}
+
     <slot name="head" />
   </head>
   <body>

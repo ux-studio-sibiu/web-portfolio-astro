@@ -27,7 +27,8 @@ const { open } = Astro.props;
 const projects = await getProjects();
 ---
 
-<Portfolio title={open ? projectTitle(open) : undefined} description={open ? summaryText(open) : undefined}>
+{/* A project's share picture is its thumbnail; one without (a built thumbnail, like the motion diagram) gets the home page's. */}
+<Portfolio title={open ? projectTitle(open) : undefined} description={open ? summaryText(open) : undefined} image={open?.data.thumb}>
   <Showcase projects={projects} open={open}>
     <BandCoreTechnologies />
     <BandWorkHistory />

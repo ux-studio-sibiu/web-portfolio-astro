@@ -8,7 +8,7 @@ Like `data-viz`, the lessons don't build separate demos: they all grow **one pro
 Each lesson also adds its own lesson page (`/lessons/NN-...`) that explains the concepts, compares them
 with what the Next.js version did, and ends with "Files in this lesson" and a "Review checklist".
 
-> Status: lessons 01–13 done. Decisions are settled in section 6.
+> Status: all 14 lessons done; deploying is the remaining step (see README.md). Decisions are settled in section 6.
 
 ---
 
@@ -200,7 +200,7 @@ what the lesson page explains (always with a **Next.js → Astro** comparison ta
 | 11 | Live thumbs + cursor card ✓ | Static noise, fluid WebGL and data-viz canvases (extracted verbatim, dynamic `import()` via `when-visible.ts`), one `data-card`-driven cursor card (identical markup to Next), and the detail-pane CSS-order fix (pane styles imported first). React-island demo left out | Dynamic `import()` on visibility as a hand-made `client:visible`. Optional lesson-page section: the same thumb as a **React island** with `client:load` / `client:visible` / `client:idle`, compared on bytes and timing (not part of the product) |
 | 12 | Performance + first improvements ✓ | Measured vs Next (first load 398 → ≈191 kB, JS 198 → 52 kB gzip). Embed preloading ported, Paint still (Chrome headless), AVIF via `<Picture>`, lazy TV, video poster, latin-only font preload, viewport fix (G10), `INTENDED` diffs in the compare script. Not done: video re-encode (no ffmpeg), `fetchpriority` (LCP is text), blur weight (a design call) | `astro build` + `preview`, reading `dist/`, bundle visualizer, Lighthouse/WebPageTest, before/after against the Next build |
 | 13 | Deep links ✓ | `/work/[slug]/` instead of `?project=` (the HTML can carry the project's title and description): each is the whole portfolio with the project served open; opening pushes that URL, Back closes, Forward reopens, arrival `adopt()`s an index entry, still closing in one step (G7) | `getStaticPaths` with props, reading the URL on load, keeping history consistent when the page starts with a project open |
-| 14 | Ship it | OG/meta per page, sitemap (lessons excluded), robots, 404, Vercel deploy, README | Integrations, `Astro.site` / canonical URLs, deploying static output |
+| 14 | Ship it ✓ | `site` from `SITE_URL` / `VERCEL_PROJECT_PRODUCTION_URL`, canonical + Open Graph + Twitter per page (project thumbnails, a home share image via Chrome headless), `@astrojs/sitemap` without lessons, robots.txt endpoint, 404, README. The deploy itself is left to you (steps in the README) | Integrations, `Astro.site` / canonical URLs, deploying static output |
 
 Possible extras after 14: View Transitions (`<ClientRouter />`) between `/` and `/work/slug`, the
 floating lesson window from `data-viz`, moving project content to Sanity with a custom content loader.

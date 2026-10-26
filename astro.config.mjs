@@ -2,15 +2,35 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig, fontProviders } from "astro/config";
 import mdx from "@astrojs/mdx";
+import sitemap from "@astrojs/sitemap";
+
+// Where the site is deployed, which canonical URLs, Open Graph URLs and the
+// sitemap all need as an absolute origin (lesson 14). In order:
+//
+//   SITE_URL                         set it yourself once there is a domain,
+//                                    e.g. SITE_URL=https://example.com
+//   VERCEL_PROJECT_PRODUCTION_URL    set by Vercel on every build: the project's
+//                                    production domain, without https://
+//   localhost                        local builds and previews
+const site =
+  process.env.SITE_URL ??
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:4321");
 
 // https://docs.astro.build/en/reference/configuration-reference/
 export default defineConfig({
+  site,
+
   // Static HTML in dist/, no server and no adapter. This is the default; it is
   // written out because the whole port leans on it (see lesson 01).
   output: "static",
 
-  // Lessons and, from lesson 04, projects are written in MDX.
-  integrations: [mdx()],
+  integrations: [
+    // Lessons and, from lesson 04, projects are written in MDX.
+    mdx(),
+    // sitemap-index.xml + sitemap-0.xml in dist/, every page except the
+    // lessons, which are for us and carry `noindex` (lesson 14).
+    sitemap({ filter: (page) => !new URL(page).pathname.startsWith("/lessons") }),
+  ],
 
   // Markdown "smartypants" rewrites ' and " into curly quotes and -- into a
   // dash. The project copy came out of JSX, which printed them as typed, so a
