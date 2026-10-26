@@ -1,0 +1,124 @@
+---
+import "./side-menu.scss";
+
+// The nav: its own fixed-position layer over the whole viewport, a sibling of
+// the showcase rather than a child of it, so nothing it does — its width, its
+// scrollbar, its transform — can reach the pane geometry underneath.
+//
+// In Next this took a portal (createPortal into <body>) because the component
+// lived deep inside the showcase's tree. Here the markup is simply WRITTEN at
+// the top level — see Showcase.astro — so there is nothing to portal.
+//
+// Only the panel takes pointer events, so the half of the screen it does not
+// cover stays live while it is open. Two reveals, picked with `reveal`: it
+// fades in where it already is, or it slides in from the left edge.
+//
+// The list starts empty. The <nsc-side-menu> element fills it from the labels
+// the showcase hands it, and does the opening and closing — see its <script>.
+interface Props {
+  reveal?: "slide" | "fade";
+}
+
+const { reveal = "slide" } = Astro.props;
+---
+
+<nsc-side-menu class={`nsc-side-menu ${reveal}`}>
+  <nav class="menu-panel" aria-label="Sections" inert>
+    <button type="button" class="menu-close" aria-label="Close the menu">
+      <span class="close-mark" aria-hidden="true"></span>
+    </button>
+
+    <ul class="menu-list"></ul>
+  </nav>
+</nsc-side-menu>
+
+<script>
+  // Opening, closing and filling the menu. Everything a page needs to know is
+  // on the element: open(labels) and close(), and a `menu-select` event when a
+  // section is chosen. Scrolling to it is the showcase's job, not the menu's.
+  //
+  // Closing is the close button, Escape, a section, or a press anywhere outside
+  // the panel.
+  class SideMenu extends HTMLElement {
+    // Looked up in connectedCallback, not in field initialisers: those run in
+    // the constructor, and an element created before its children are parsed
+    // would find nothing. Here a deferred module script always runs after the
+    // page is parsed, but connectedCallback is the place that is safe either way.
+    #panel!: HTMLElement;
+    #close!: HTMLButtonElement;
+    #list!: HTMLUListElement;
+    // Every listener added in connectedCallback hangs off this, so one abort()
+    // removes them all when the element leaves the page.
+    #wiring?: AbortController;
+
+    #onKey = (e: KeyboardEvent) => { if (e.key === "Escape") this.close(); };
+    #onDown = (e: PointerEvent) => { if (!this.#panel.contains(e.target as Node)) this.close(); };
+
+    connectedCallback() {
+      this.#panel = this.querySelector(".menu-panel")!;
+      this.#close = this.querySelector(".menu-close")!;
+      this.#list = this.querySelector(".menu-list")!;
+      this.#wiring = new AbortController();
+      const { signal } = this.#wiring;
+
+      this.#close.addEventListener("click", () => this.close(), { signal });
+
+      // One listener for every entry, now and later: the buttons are rebuilt
+      // whenever the labels change, so a listener on each would have to be
+      // rebuilt with them.
+      this.#list.addEventListener("click", (e) => {
+        const button = (e.target as HTMLElement).closest<HTMLButtonElement>(".menu-link");
+        if (button) this.dispatchEvent(new CustomEvent("menu-select", { detail: button.textContent, bubbles: true }));
+      }, { signal });
+    }
+
+    disconnectedCallback() {
+      this.close();
+      this.#wiring?.abort();
+    }
+
+    get isOpen() {
+      return this.classList.contains("is-open");
+    }
+
+    // The entries are buttons rather than <a href="#…">: the index scrolls
+    // inside .pane-scroll (or .index-pane below tablet) rather than the
+    // document, and a real hash link would also push a history entry, which
+    // is what the detail pane uses to know it has been closed (lesson 08).
+    setSections(labels: string[]) {
+      this.#list.replaceChildren(
+        ...labels.map((label) => {
+          const item = document.createElement("li");
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "menu-link";
+          button.textContent = label;
+          item.append(button);
+          return item;
+        }),
+      );
+    }
+
+    open() {
+      if (this.isOpen) return;
+      this.classList.add("is-open");
+      this.#panel.inert = false;
+      this.#close.focus();
+      // Called from the click that opened it, so the pointerdown of that
+      // press has already been and gone and cannot close it on the way in.
+      window.addEventListener("keydown", this.#onKey);
+      document.addEventListener("pointerdown", this.#onDown);
+    }
+
+    close() {
+      if (!this.isOpen) return;
+      this.classList.remove("is-open");
+      this.#panel.inert = true;
+      window.removeEventListener("keydown", this.#onKey);
+      document.removeEventListener("pointerdown", this.#onDown);
+      this.dispatchEvent(new CustomEvent("menu-close", { bubbles: true }));
+    }
+  }
+
+  customElements.define("nsc-side-menu", SideMenu);
+</script>

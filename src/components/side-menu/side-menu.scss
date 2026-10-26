@@ -1,0 +1,192 @@
+@use "@/styles/breakpoints" as *;
+
+// Its own layer over everything, portalled to <body> rather than living in the
+// showcase — so it overlays the pane instead of taking part in it. Fixed, not
+// absolute: there is no positioned ancestor out here, and none is wanted.
+//
+// The layer itself never takes pointer events; only the panel does. There is no
+// backdrop, so the half of the screen the panel does not cover carries on
+// working while it is open — a press out there closes the menu, it does not get
+// eaten by an invisible sheet.
+//
+// The panel is parked off the left edge rather than hidden, so it has somewhere
+// to slide in from. The layer clips it, which is what keeps a parked panel off
+// the screen.
+.nsc-side-menu {
+  position: fixed;
+  z-index: 60;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+
+  // The same box as .pane-fixed — full width below tablet, the left half above
+  // it — so it lands exactly over the identity it replaces. Same easing and
+  // roughly the same duration as the detail slide.
+  .menu-panel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    padding: 2rem var(--gutter);
+    background: var(--color-ink);
+    color: var(--color-bg);
+    overflow-y: auto;
+    // Explicit, and not just tidiness: overflow-y on its own computes overflow-x
+    // to auto as well, so a label one letter too long would put a horizontal
+    // scrollbar across the page rather than simply being clipped.
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    pointer-events: auto;
+
+    @include respond-to("tablet") {
+      width: 50vw;
+      padding: 2.5rem 2rem;
+    }
+  }
+
+  // --- Reveal: slide ---------------------------------------------------------
+  //
+  // Parked off the left edge rather than hidden, so it has somewhere to come
+  // from; the layer's overflow is what keeps it off the screen while parked.
+  &.slide .menu-panel {
+    transform: translateX(-100%);
+    transition: transform 0.55s cubic-bezier(0.65, 0, 0.35, 1);
+  }
+
+  &.slide.is-open .menu-panel {
+    transform: translateX(0);
+  }
+
+  // --- Reveal: fade ----------------------------------------------------------
+  //
+  // In place, so there is nothing to park — which means visibility has to do
+  // the work the parking did: an invisible panel sitting over the left half
+  // would still take every click. Delayed on the way out so it is present for
+  // the whole fade, immediate on the way in.
+  &.fade .menu-panel {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.45s ease, visibility 0s linear 0.45s;
+  }
+
+  &.fade.is-open .menu-panel {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.45s ease;
+  }
+
+  // Last, and covering both: a media query adds no specificity, so a reduced
+  // motion rule written up in the base block would be overridden by whichever
+  // reveal block came after it.
+  @media (prefers-reduced-motion: reduce) {
+    .menu-panel {
+      transition: none;
+    }
+
+    &.fade .menu-panel {
+      transition: visibility 0s;
+    }
+  }
+
+  // Top right of the panel, and in the flow rather than pinned there: the panel
+  // scrolls, and an absolute corner would ride up the content with it.
+  .menu-close {
+    align-self: flex-end;
+    display: grid;
+    place-items: center;
+    width: 3rem;
+    height: 3rem;
+    // Pulled out into the corner. The panel's padding is not square — more above
+    // than either side — so the pull is not either, or the X sits visibly
+    // further from the top edge than from the right one.
+    margin: -0.5rem 0 0 0;
+    padding: 0;
+    background: none;
+    border: 0;
+    color: var(--color-bg);
+    cursor: pointer;
+    opacity: 0.85;
+    transition: opacity 0.2s ease;
+
+    @include respond-to("tablet") {
+      margin: -1rem -0.5rem 0 0;
+    }
+
+    &:hover,
+    &:focus-visible {
+      opacity: 1;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
+  }
+
+  // Two crossed bars rather than a × glyph — the same device as the rail's
+  // hamburger, and the only way the weight stays exact at this size instead of
+  // following whatever the font does to its multiplication sign.
+  .close-mark {
+    position: relative;
+    display: block;
+    width: 2.25rem;
+    height: 2.25rem;
+
+    &::before,
+    &::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: currentColor;
+    }
+
+    &::before { transform: translateY(-50%) rotate(45deg); }
+    &::after { transform: translateY(-50%) rotate(-45deg); }
+  }
+
+  .menu-list {
+    margin: auto 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  // One line per section, sized off the panel the way the name is sized off
+  // column 1.
+  .menu-link {
+    display: block;
+    width: 100%;
+    padding: 0.35rem 0;
+    background: none;
+    border: 0;
+    color: inherit;
+    text-align: left;
+    line-height: 0.95;
+    letter-spacing: -0.045em;
+    font-weight: 800;
+    text-transform: uppercase;
+    font-size: clamp(2rem, 10.5vw, 3.25rem);
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+
+    @include respond-to("tablet") {
+      // The divisor is the width-to-size ratio of the longest label —
+      // EXPERIMENTS in Archivo 800 — plus slack. A longer section name is what
+      // would want this raised.
+      font-size: calc((50vw - 4rem) / 7.4);
+    }
+
+    &:hover,
+    &:focus-visible {
+      opacity: 0.55;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
+  }
+}

@@ -1,0 +1,100 @@
+@use "@/styles/breakpoints" as *;
+
+.nsc-rail-button {
+  // Placed in the rail that carries it, which is the box fixed to the viewport
+  // — see SectionRail. Centred on that box rather than on half of --rail, so it
+  // cannot drift off the bar it sits on.
+  position: absolute;
+  z-index: 1;
+  top: 1.75rem;
+  left: 50%;
+  transform: translateX(-50%);
+  // The rail takes no pointer events; this is the one thing in it that does.
+  pointer-events: auto;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  background: none;
+  border: 2px solid var(--color-ink);
+  border-radius: 50%;
+  color: var(--color-ink);
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+
+  // Below tablet there is no black rail behind it, only whatever content is
+  // scrolling under, so it gets a white disc to stay legible. Before the hover
+  // rule so the inverted hover still wins.
+  //
+  // It also moves to the top right, centred on the side menu's close X, so
+  // opening and closing the menu happens in one spot. Fixed rather than
+  // absolute: the rail it sits in is only --rail wide. The X's centre, from
+  // side-menu.scss: 2rem panel padding less its 0.5rem pull, plus half its 3rem
+  // box, down; the gutter plus half the box, in from the right. Less half of
+  // this button (2.75rem) on both.
+  @include respond-to-max("tablet") {
+    position: fixed;
+    top: calc(2rem - 0.5rem + 1.5rem - 1.375rem);
+    right: calc(var(--gutter) + 1.5rem - 1.375rem);
+    left: auto;
+    transform: none;
+    background: #fff;
+  }
+
+  &:hover,
+  &:focus-visible {
+    background: var(--color-ink);
+    color: var(--color-bg);
+  }
+
+  // Inverted once the black rail is up behind it, on a transition close enough
+  // to the rail's own that the two read as one change.
+  &.is-inverted {
+    border-color: var(--color-bg);
+    color: var(--color-bg);
+
+    &:hover,
+    &:focus-visible {
+      background: var(--color-bg);
+      color: var(--color-ink);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+
+  // The arrow is drawn rather than set as a glyph, so it shares the button's
+  // colour through currentColor and inverts with it.
+  .back-arrow {
+    width: 1.125rem;
+    height: 1.125rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .menu-bars {
+    position: relative;
+    display: block;
+    width: 1.125rem;
+    height: 2px;
+    background: currentColor;
+
+    &::before,
+    &::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: currentColor;
+    }
+
+    &::before { top: -6px; }
+    &::after { top: 6px; }
+  }
+}

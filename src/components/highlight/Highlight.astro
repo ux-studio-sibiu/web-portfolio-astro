@@ -17,8 +17,10 @@
 // `delay` is pixels of pane scroll and only means anything on a pinned phrase:
 // a travelling one already has its own position to be timed off.
 //
-// The sweep needs no script where the browser has scroll-driven animations;
-// the fallback for the rest arrives in lesson 06.
+// The sweep needs no script where the browser has scroll-driven animations.
+// For the rest (Firefox), the <script> at the foot of this file scrubs it.
+// Astro bundles a component's script ONCE per page, however many times the
+// component is used — so ~30 highlights still mean one script.
 interface Props {
   pinned?: boolean;
   delay?: number;
@@ -30,3 +32,7 @@ const { pinned, delay, alwaysSelected } = Astro.props;
 
 {/* One line on purpose: any whitespace between these tags would end up inside the band. The inner box paints the glyphs; the outer one paints the band. */}
 <span class:list={["highlight-on-scroll", { pinned, "is-selected": alwaysSelected }]} style={delay ? { "--sweep-delay": delay } : undefined}><span class="highlight-ink"><slot /></span></span>
+
+<script>
+  import "./scroll-highlights";
+</script>

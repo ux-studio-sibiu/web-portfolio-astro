@@ -1,5 +1,11 @@
 @use "@/styles/breakpoints" as *;
 
+// The custom element that carries the shell's behaviour (showcase-controller.ts).
+// No box of its own: its children lay out exactly as if it were not there.
+nsc-showcase {
+  display: contents;
+}
+
 // Frame only. Everything inside a band, the fixed column or the detail pane
 // lives in that component's own stylesheet; what stays here is the geometry
 // they all sit in — the track, the three columns, and the divider.

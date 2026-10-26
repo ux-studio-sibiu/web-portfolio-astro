@@ -1,0 +1,137 @@
+@use "@/styles/breakpoints" as *;
+
+.nsc-section-rail {
+  position: fixed;
+  z-index: 6;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: var(--rail);
+  // A backdrop, not a surface: the wheel falls straight through to whichever
+  // pane is underneath — the index scroller, or the detail's own body once that
+  // has come over. Only the button takes events back for itself.
+  pointer-events: none;
+
+  // Below tablet the detail pane takes the whole screen and brings its own back
+  // button to this exact corner. There is no room for both, and the pane's own
+  // control is the one that matters while it is up.
+  &.is-detail {
+    display: none;
+
+    @include respond-to("tablet") {
+      display: block;
+    }
+  }
+
+  // The black bar and the titles on it. Faded as one by --column-fade, which the
+  // showcase writes on scroll, so the rail goes with the fixed column at the
+  // foot of the page.
+  //
+  // Its own box rather than one declaration on the rail, because the two fades
+  // here are different in kind: this one tracks the scroll and must land on the
+  // frame it is given, while the black arriving under a title is a transition.
+  // On one element the transition would smooth the scroll fade as well, and the
+  // rail would lag the page all the way down.
+  .rail-body {
+    position: absolute;
+    inset: 0;
+    opacity: var(--column-fade, 1);
+
+    // Below tablet no band ever owns a title, so the rail never shows there —
+    // but the button above still does, which is why this is hidden and not the
+    // box around it.
+    display: none;
+
+    @include respond-to("tablet") {
+      display: block;
+    }
+  }
+
+  // The rail is not a permanent fixture: it comes and goes with the titles, so
+  // it is never sitting over the name at the top of the scroll. It carries the
+  // SAME transition as a title and flips on the same instant, which is what
+  // makes the black and the first word arrive as one thing. Once it is up it
+  // stays up: the later sections only cross-fade against it.
+  .rail-ink {
+    position: absolute;
+    inset: 0;
+    background: var(--color-ink);
+    opacity: 0;
+    transition: opacity 0.45s ease;
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
+  }
+
+  .rail-body.is-active .rail-ink {
+    opacity: 1;
+  }
+
+  .section-stack {
+    position: absolute;
+    inset: 0;
+  }
+
+  // All titles occupy the whole rail and cross-fade in place.
+  //
+  // Rotation is `writing-mode`, not a transform: the glyphs turn with the line
+  // and the box keeps its real size, so nothing has to be measured by hand.
+  // vertical-rl on its own reads top-to-bottom, and the half turn flips it to
+  // read bottom-to-top. (`sideways-lr` does this in one declaration, but it is
+  // too new to rely on.)
+  //
+  // The word still sits at the TOP of the rail — the placement is written as
+  // its mirror image because the rotation turns the box with the text. Grid
+  // axes turn with the writing mode too, so `align-items` is the horizontal one
+  // (centre across the rail) and `justify-items` the vertical: `end` is the
+  // bottom, which the half turn puts at the top, and padding-bottom lands there
+  // with it.
+  //
+  // Which is why the clearance for the menu button — at the head of the rail —
+  // is written as padding-BOTTOM: 100px of it appears above the word, not below.
+  .rail-section {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center end;
+    padding-bottom: calc(2.5rem + 100px);
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    opacity: 0;
+    transition: opacity 0.45s ease;
+    // Not the 0.85 the horizontal titles have: line-height is the rail's width
+    // here, and anything under 1 clips the glyphs against the black.
+    line-height: 1;
+    letter-spacing: -0.045em;
+    // Doubles the gap between words in multi-word project titles: a space is
+    // about 0.25em, plus the negative tracking that also tightens it.
+    word-spacing: 0.3em;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--color-bg);
+    // Tied to the rail rather than the column, so the two stay in proportion.
+    font-size: calc(var(--rail) * 0.5);
+
+    &.is-active {
+      opacity: 1;
+    }
+
+    // A project title centred on a box in its embed (the entry's
+    // railTitleBox): the title's own box is moved to that span and the word
+    // centred in it. The half turn spins the box about its own centre, so it
+    // stays where `top` and `height` put it. The detail pane's iframe starts
+    // at the top of the screen like the rail, so px inside the embed are the
+    // same px here.
+    &.is-anchored {
+      inset: var(--rail-project-top) 0 auto;
+      height: var(--rail-project-height);
+      padding-bottom: 0;
+      place-items: center;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
+  }
+}

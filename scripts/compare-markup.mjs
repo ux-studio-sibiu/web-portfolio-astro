@@ -33,6 +33,9 @@ const ROOTS = [
   ["section", "nsc-band-contact"],
   ["section", "nsc-detail-pane"],
   ["svg", "nsc-elastic-line"],
+  ["div", "nsc-section-rail"],
+  // Not .nsc-side-menu: Next only mounted it after hydration, so there is no
+  // server markup of it to compare with.
 ];
 
 // data-* attributes the port adds as hooks for its own scripts.

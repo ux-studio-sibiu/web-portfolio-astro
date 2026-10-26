@@ -1,0 +1,193 @@
+---
+number: 6
+title: "First scripts: the menu, the rail and the highlights"
+summary: The page ships its first JavaScript, about 3.7 kB of it. Custom elements for the side menu and the shell, the highlight fallback for Firefox, the rail filled from the bands, and the Work history jumps working.
+---
+
+Until now the page shipped no JavaScript. This lesson adds the first, deliberately small, pieces:
+
+- the **rail** gets its section titles;
+- the **rail button** opens the **side menu**, and a section in it scrolls its band into view;
+- **"accounting SaaS"** and **"white-label product"** in Work history scroll to their project;
+- the **highlight sweep** gets its fallback script for browsers without scroll-driven animations (Firefox).
+
+The detail pane, history and the scroll sequence build on this in lessons 07–09.
+
+## `<script>` in an Astro component
+
+```astro
+<!-- Highlight.astro -->
+<span class="highlight-on-scroll">…</span>
+
+<script>
+  import "./scroll-highlights";
+</script>
+```
+
+A plain `<script>` in a `.astro` file is **processed**:
+
+- **Bundled.** It can `import` TypeScript and npm packages (lesson 10 imports GSAP). Astro builds it with
+  Vite into `dist/_astro/*.js`.
+- **A module.** It's emitted as `<script type="module">`, which is **deferred**: it runs after the HTML is
+  parsed, so every element it looks for is already there.
+- **Once per page.** `Highlight` is used about 30 times on `/`. Its script is in the page **once**.
+  This is gotcha G2 in action: a component script is not "per instance", so it has to find every element
+  it's responsible for itself.
+- **Small ones are inlined.** The side menu's script has no imports and is under the size limit, so it
+  appears as an inline `<script type="module">` rather than a separate file.
+
+The opposite is **`<script is:inline>`**: left exactly as written, no TypeScript, no imports, no
+bundling, and repeated every time the component renders. It's only for something that must run
+**before** the page paints, such as setting a theme class to avoid a flash. Nothing in the portfolio
+needs that.
+
+What `/` now ships, uncompressed: the highlight script (1.3 kB), the shell controller (1.1 kB), the
+side menu (1.4 kB, inline) and a shared `motion` helper (0.1 kB). That's about **3.7 kB in total**. The
+Next version shipped React, ReactDOM and the Next runtime before any of the portfolio's own code ran.
+
+## Custom elements: behaviour attached to markup
+
+React components carry their behaviour with them. An Astro component renders to HTML and is gone. The
+browser's own way to attach behaviour to markup is a **custom element**:
+
+```ts
+class SideMenu extends HTMLElement {
+  connectedCallback() { /* the element is in the page: find children, add listeners */ }
+  disconnectedCallback() { /* it left: clean up */ }
+  open() { … }
+  close() { … }
+}
+customElements.define("nsc-side-menu", SideMenu);
+```
+
+```astro
+<nsc-side-menu class="nsc-side-menu fade">
+  <nav class="menu-panel" inert>…</nav>
+</nsc-side-menu>
+```
+
+- **The browser does the wiring.** Every `<nsc-side-menu>` on the page, now or added later, gets the class:
+  there's no `querySelectorAll` and no "init" call. That answers G2 neatly: one script, any number of
+  instances.
+- **The name needs a hyphen** (`nsc-side-menu`). Names without one are reserved for HTML.
+- **Look children up in `connectedCallback`, not in field initialisers.** Fields run in the constructor,
+  and an element created before its children are parsed would find nothing.
+- **One `AbortController` per element.** Every listener is added with `{ signal }`, and
+  `disconnectedCallback` calls `abort()`. That's the cleanup a `useEffect` return used to do, in one line.
+
+| React (old) | Custom element (now) |
+|---|---|
+| `useState(false)` for "menu open" | the `is-open` class on the element (CSS already keyed off it) |
+| `inert={!isOpen}` | `panel.inert = …` in `open()` / `close()` |
+| `onOpenMenu` / `onSelect` props, passed down | `menu.open()`, and a `menu-select` **event** bubbling up |
+| `useEffect` + its cleanup | `connectedCallback` / `disconnectedCallback` + `AbortController` |
+| `createPortal(…, document.body)` | **nothing**: see below |
+
+### The shell: `<nsc-showcase>`
+
+`Showcase.astro` now wraps its markup in `<nsc-showcase>`, and its script (`showcase-controller.ts`) is
+where `ShowcaseLinear`'s state goes. The wrapper is styled `display: contents`, so it **produces no
+box** and the layout is exactly what it was without it. So far it:
+
+1. reads the bands' `data-section` labels in page order (Projects, Experiments, Skills, Contact) and adds
+   one rotated `<span>` per label to the rail, then hands the list to the menu. The labels are still
+   declared in **one** place, on the bands;
+2. opens the menu from the rail button, and on `menu-select` scrolls the band into view;
+3. handles a click on any `[data-scroll-to]` with **one delegated listener** on the shell, not one per button.
+
+Scrolling uses `scrollIntoView` rather than setting `scrollTop`, because which element scrolls changes at
+the tablet breakpoint (`.pane-scroll` above, `.index-pane` below), and `scrollIntoView` finds whichever
+it is.
+
+### Two custom elements, one ordering question
+
+The controller calls `menu.setSections()`, a method of **another** custom element defined by **another**
+script. Both are bundled into the page, but nothing promises which one is defined first. Until
+`nsc-side-menu` is defined, the element is a plain `HTMLElement` with no `setSections`. So:
+
+```ts
+customElements.whenDefined("nsc-side-menu").then(() => menu.setSections(labels));
+```
+
+`whenDefined` resolves immediately if the element is already defined, and otherwise waits for it.
+
+### No portal needed
+
+The menu has to sit **outside** the shell: it's a fixed, full-viewport layer, and nothing about it may
+affect the pane geometry. In React it was rendered deep inside `ShowcaseLinear`'s tree, so it needed
+`createPortal` to escape into `<body>`. In Astro you write the markup **where it belongs**:
+`Showcase.astro` renders `<SideMenu />` after the shell's `<div>`. The portal was a workaround for where
+the component lived, not something the menu needed.
+
+## Data from the build to the script (G3)
+
+The frontmatter runs at build time and is gone. A script that needs something from it reads it from the
+**DOM**:
+
+- `data-section="Skills"` on a band → the controller reads `band.dataset.section`
+- `data-scroll-to="advisor"` on a button → `jump.dataset.scrollTo`
+- `data-slug="advisor"` on an entry → looked up with `querySelector('[data-slug="advisor"]')`
+- `data-open="advisor"` on every thumbnail and View button → used in lesson 07
+
+`define:vars` can also pass values into a `<script>`, but it turns the script `is:inline`: no bundling,
+no imports, and repeated per instance. `data-*` keeps the script bundled and the values next to the
+element they belong to.
+
+## State before JavaScript (G8)
+
+With no hydration, the **HTML has to be right before any script runs**, and right if one never does.
+Checked for what this lesson touches:
+
+| Thing | Served as | After the script |
+|---|---|---|
+| Side menu | closed, `inert` (unreachable by Tab) | opens on demand |
+| Rail | no titles, not active, button not inverted | titles added (the rail is up only once lesson 09 runs) |
+| Highlights | swept by CSS where supported; elsewhere `--lit: 0` | Firefox: scrubbed by the fallback |
+| Work history jumps | buttons that do nothing | scroll to the project |
+
+That's the same initial state the Next server render had: `sections` started as `[]` there too, and
+the menu didn't exist until hydration.
+
+## The highlight fallback
+
+`<ScrollHighlights />` was a React component that rendered `null` and existed only for its `useEffect`.
+Ported, it's what it always was: a script (`scroll-highlights.ts`). The logic is unchanged:
+
+- if `CSS.supports("animation-timeline", "view()")`, it does nothing, because CSS sweeps the bands off the
+  main thread;
+- otherwise an `IntersectionObserver` keeps the few phrases near the viewport, and on scroll only those
+  are measured. All reads happen first, then all writes, to avoid layout thrashing;
+- a `MutationObserver` picks up highlights that arrive later (project details, lesson 07).
+
+## A native alternative not taken: `popover`
+
+`<div popover>` gives a menu **Escape** and **click-outside to close** for free, and puts it in the top
+layer. It wasn't used here, for 1:1 reasons: popovers toggle `display: none`, which breaks the existing
+fade transition unless the CSS is rewritten with `transition-behavior: allow-discrete`, and the
+behaviour (a non-modal half-screen panel) is already exactly specified. It's worth trying once the port is
+finished.
+
+## Files in this lesson
+
+- `src/components/showcase/Showcase.astro`: wraps everything in `<nsc-showcase>`, adds the rail and the menu, loads the controller
+- `src/components/showcase/showcase-controller.ts`: the `<nsc-showcase>` custom element
+- `src/components/showcase/showcase.scss`: `nsc-showcase { display: contents }`
+- `src/components/section-rail/SectionRail.astro` + `section-rail.scss`
+- `src/components/rail-button/RailButton.astro` + `rail-button.scss`
+- `src/components/side-menu/SideMenu.astro` (markup + the `<nsc-side-menu>` script) + `side-menu.scss`
+- `src/components/highlight/Highlight.astro` (script tag) + `scroll-highlights.ts`
+- `src/scripts/motion.ts`: `prefersReducedMotion()`, `scrollBehavior()`
+- `scripts/compare-markup.mjs`: the rail added as a tenth root
+- `src/content/lessons/06-first-scripts.mdx`: this page
+- `ROADMAP.md`: lesson 06 ticked
+
+## Review checklist
+
+- [ ] The rail button opens the menu and focus lands on its close button. Like the old site, the menu is non-modal: Tab can leave it.
+- [ ] Choosing "Skills" closes the menu and scrolls to the Skills band.
+- [ ] Escape, the × button and a click on the right half of the screen all close the menu.
+- [ ] "accounting SaaS" in Work history scrolls to the Accounting platform entry.
+- [ ] View source: three `<script type="module">` tags, one of them inline, and no `<script>` on the lesson pages.
+- [ ] In Firefox, the highlights in the bands sweep as you scroll (the fallback script). This wasn't tested in Firefox for this lesson.
+- [ ] `node scripts/compare-markup.mjs` prints SAME ten times.
+- [ ] With JavaScript disabled, the page still reads correctly and the menu stays closed and unreachable.

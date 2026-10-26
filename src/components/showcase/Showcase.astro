@@ -2,39 +2,54 @@
 import FixedColumn from "@/components/fixed-column/FixedColumn.astro";
 import ElasticLine from "@/components/elastic-line/ElasticLine.astro";
 import DetailPane from "@/components/detail-pane/DetailPane.astro";
+import SectionRail from "@/components/section-rail/SectionRail.astro";
+import SideMenu from "@/components/side-menu/SideMenu.astro";
 import "./showcase.scss";
 
 // The shell. It owns the frame and nothing else: the two-pane track, the three
-// columns of the index pane, and the divider between columns 2 and 3.
+// columns of the index pane, the divider between columns 2 and 3, and the two
+// things fixed over all of it — the section rail and the side menu.
 //
 // The bands are its children, written in index.astro in page order. Each band
 // is its own component and brings its own stylesheet. A band that wants the
-// rail's title declares `data-section="Label"` on itself (lesson 06 reads them).
+// rail's title declares `data-section="Label"` on itself.
 //
-// Everything that moves — the slide to the detail pane, the identity fade, the
-// section ownership — arrives in lessons 07 to 10. Served as-is, this is the
-// page at the top of the scroll with no project open.
+// Behaviour lives in <nsc-showcase> (showcase-controller.ts), a custom element
+// wrapped around the markup. It is `display: contents`, so it adds no box of
+// its own and the layout is exactly what it was without it.
 ---
 
-<div class="nsc-showcase-linear">
-  <div class="showcase-track">
+<nsc-showcase>
+  <div class="nsc-showcase-linear">
+    <div class="showcase-track">
 
-    {/* Index pane — three vertical sections. Column 1 is fixed and never scrolls; columns 2 and 3 scroll together inside .pane-scroll. The rule between 2 and 3 is the same line the project thumbnails sit against: both are placed off --col-media, so they cannot drift. */}
-    <section class="showcase-pane index-pane">
-      <FixedColumn />
+      {/* Index pane — three vertical sections. Column 1 is fixed and never scrolls; columns 2 and 3 scroll together inside .pane-scroll. The rule between 2 and 3 is the same line the project thumbnails sit against: both are placed off --col-media, so they cannot drift. */}
+      <section class="showcase-pane index-pane">
+        <FixedColumn />
 
-      {/* Columns 2 + 3 — scrolling. */}
-      <div class="pane-scroll">
-        <div class="scroll-inner">
-          <slot />
+        {/* Columns 2 + 3 — scrolling. */}
+        <div class="pane-scroll">
+          <div class="scroll-inner">
+            <slot />
+          </div>
         </div>
-      </div>
 
-      {/* The divider. It sits on the pane rather than in the scrolling content, so it reads as one full-height line that ends on the bottom edge of the screen. */}
-      <ElasticLine class="column-rule" />
-    </section>
+        {/* The divider. It sits on the pane rather than in the scrolling content, so it reads as one full-height line that ends on the bottom edge of the screen. */}
+        <ElasticLine class="column-rule" />
+      </section>
 
-    <DetailPane />
+      <DetailPane />
 
+    </div>
+
+    {/* Outside the track, fixed to the viewport: the rail and the one control on the page stay exactly where they are while the detail pane comes over the top of everything else. */}
+    <SectionRail />
   </div>
-</div>
+
+  {/* Outside the shell entirely, where Next needed a portal to put it. */}
+  <SideMenu reveal="fade" />
+</nsc-showcase>
+
+<script>
+  import "./showcase-controller";
+</script>

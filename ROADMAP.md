@@ -8,7 +8,7 @@ Like `data-viz`, the lessons don't build separate demos: they all grow **one pro
 Each lesson also adds its own lesson page (`/lessons/NN-...`) that explains the concepts, compares them
 with what the Next.js version did, and ends with "Files in this lesson" and a "Review checklist".
 
-> Status: lessons 01–05 done. Decisions are settled in section 6.
+> Status: lessons 01–06 done. Decisions are settled in section 6.
 
 ---
 
@@ -191,7 +191,7 @@ what the lesson page explains (always with a **Next.js → Astro** comparison ta
 | 03 | The shell + text-only bands ✓ | Two-pane track, fixed column (identity + blurb), `.pane-scroll` with columns 2–3, detail-pane frame (closed), plus Core technologies, Work history, Skills and Contact as plain `.astro` (CV links to `public/cv`), all with no JS. `scripts/compare-markup.mjs` checks each component root against the Next build | Components, `Astro.props` with a typed `Props` interface, default and **named slots**, slot fallbacks, `Astro.slots.has`, `.map()` and conditionals in templates, fragments, `set:html` (and when not to) |
 | 04 | Projects as a content collection ✓ | `projects` collection + Zod schema, one `.mdx` per entry (`<Summary>` / `<Points>` in the body, rendered one at a time by `ProjectCopy`), `getProjects()`, drafts, thumbs copied into `src/assets`, smartypants off | Content layer, `glob()` loader, `image()` in schemas, `getCollection` + sorting, `render()` → `<Content />`, MDX components mapping. **G1: why not children props.** |
 | 05 | Projects & experiments bands (markup + images) ✓ | Both bands rendered from the collection: sizes, groups (tools / various), `className` variants, all seven thumb components (canvas ones blank until 11), `Thumb.astro` (WebP + Next's blur placeholder rebuilt with sharp), compare script extended to images | `astro:assets` `<Image>` / `<Picture>`, `sizes` / `widths`, AVIF, CLS, the LQIP decision (G4), `public/` vs `src/assets` |
-| 06 | First scripts: menu, rail, highlights | Side menu (portal → `<dialog>`/popover), section rail markup, highlight sweep (CSS `view()` + fallback script), reduced-motion helper | Processed `<script>` vs `is:inline`, bundling and dedupe (G2), **custom elements** as the Astro-native component behaviour, `data-*` handoff (G3), state before JS (G8) |
+| 06 | First scripts: menu, rail, highlights ✓ | `<nsc-side-menu>` (no portal needed; kept as a div, popover noted as a later option), `<nsc-showcase>` controller (rail titles, menu → section scroll, `data-scroll-to` jumps), section rail + rail button markup, highlight fallback script, `motion.ts` helper | Processed `<script>` vs `is:inline`, bundling and dedupe (G2), **custom elements** as the Astro-native component behaviour, `data-*` handoff (G3), state before JS (G8) |
 | 07 | Detail pane | `<nsc-showcase>` controller: open/close, `<template>` details, `Embed.astro`, Advisor/FourInOne details, Escape, `inert` | React state → DOM state + custom events, template laziness (nothing loads until cloned) |
 | 08 | History | Opening pushes a history entry, back closes the pane, close returns in one step via the Navigation API with a `history.go(-n)` fallback | `pushState` / `popstate`, the Navigation API, why iframes share the page's history (G7), URL as state |
 | 09 | Scroll sequence | Identity fade, section ownership, outro, wheel forwarding, `ResizeObserver` re-measuring. Plain DOM measurement, no GSAP | Custom scroller (G6), measure-then-write, passive listeners, `ResizeObserver`, why fractions of the pane beat fixed pixels |

@@ -1,0 +1,17 @@
+---
+import "./rail-button.scss";
+
+// The one button on the page, at the head of the section rail. The rail is
+// fixed to the viewport and outside the sliding track, so this is the same
+// button in the same place from the first screen to the last — and it stays
+// there while a project is open.
+//
+// Which is why it has two jobs rather than two buttons: browsing, it opens the
+// section menu; with a project open (lesson 07), the same circle becomes the
+// way back out of it. Served in its menu mode; the controller swaps it.
+---
+
+<button type="button" class="nsc-rail-button" aria-label="Open the section menu">
+  {/* Three rules out of one box: the middle bar is the element, the other two are its edges, so there is nothing to keep in step by hand. */}
+  <span class="menu-bars" aria-hidden="true"></span>
+</button>

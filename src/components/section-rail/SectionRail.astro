@@ -1,0 +1,32 @@
+---
+import RailButton from "@/components/rail-button/RailButton.astro";
+import "./section-rail.scss";
+
+// The black rail down the left edge of the screen, carrying the section titles
+// on their side, and the one button on the page.
+//
+// It is fixed to the VIEWPORT and lives outside the sliding track: the track is
+// transformed while the detail pane comes over, and a fixed box inside a
+// transformed ancestor is laid out against that ancestor instead — it would
+// travel with the slide. Out here it simply stays.
+//
+// Served the way it is at the top of the page: no section active, the rail
+// down. The section titles are NOT written here: the showcase controller reads
+// them off the bands' `data-section` attributes and adds one <span> each, so
+// nothing here needs updating when a band is added. The last span is the open
+// project's title (lesson 07).
+---
+
+<div class="nsc-section-rail">
+  {/* Everything that fades with the fixed column, and nothing that does not. The button is outside it deliberately: it is the only way into the nav, so it is there on the first screen and on the last. */}
+  <div class="rail-body">
+    <span class="rail-ink"></span>
+
+    {/* Decorative: the rotated titles say what the scroll already says. The hiding stops at this box — a focusable control inside an aria-hidden subtree is a control screen readers cannot reach. */}
+    <div class="section-stack" aria-hidden="true">
+      <span class="rail-section"></span>
+    </div>
+  </div>
+
+  <RailButton />
+</div>
