@@ -6,6 +6,7 @@ import { ScrollTrigger } from "@/scripts/gsap";
 import { elasticLine } from "@/components/elastic-line/elastic-line";
 import { playTileReveal } from "@/components/tile-reveal/tile-reveal";
 import { preloadEmbedsIn } from "@/scripts/embed-preload";
+import { readMore } from "@/scripts/read-more";
 import { projectPath, slugFromPath } from "@/lib/paths";
 
 // <nsc-showcase>: the behaviour of the shell, as a custom element wrapped
@@ -148,12 +149,15 @@ class Showcase extends HTMLElement {
     // is open — and usually the document cached — by the time the pane opens.
     // Entries opt in with `data-preload` (the bands put the `href` there).
     const stopPreload = preloadEmbedsIn(el.scroller);
+    // On phones, every entry's bullet list behind a "read more" link.
+    const stopReadMore = readMore(el.scroller);
     // All of it cleans up with everything else when the element leaves the page.
     signal.addEventListener("abort", () => {
       stopSequence();
       stopWheel();
       stopLine();
       stopPreload();
+      stopReadMore();
       this.#stopReveal?.();
     });
 

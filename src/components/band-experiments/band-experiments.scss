@@ -49,6 +49,17 @@
     gap: 1.5rem;
     padding: 2.5rem 0 0;
 
+    // Phones only: more air BETWEEN rows, not above the first. Stacked in one
+    // column, with the bullets folded away behind "read more", the rows ran
+    // into each other — one entry's link sat almost on the next one's frame.
+    // (`& + .scroll-entry-secondary`, not `& + &`: nested, the second `&` would
+    // repeat the whole `.nsc-band-experiments …` chain and never match.)
+    & + .scroll-entry-secondary {
+      @include respond-to-max("tablet") {
+        padding-top: 4.5rem;
+      }
+    }
+
     @include respond-to("tablet") {
       grid-template-columns: var(--col-media) 1fr;
       gap: 0;

@@ -320,6 +320,27 @@ a {
 // reads as a sentence, twice that under the pointer — enough to answer "is this
 // a thing?" without a fill, a colour change or anything else that would pull
 // the eye while you are only reading.
+// An entry's bullet list hidden behind "Read more" on phones (read-more.ts).
+// The bands set these lists to `display: flex`, which would otherwise beat the
+// `hidden` attribute — the UA's display: none is the weakest rule there is.
+.entry-points[hidden] {
+  display: none !important;
+}
+
+// The "read more" / "read less" under a collapsed list: an .inline-link in the
+// small mono the entries' details already use, lower case and bold, with room
+// above it so it reads as belonging to the entry rather than to the last line.
+.read-more {
+  margin-top: 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 700;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
 .inline-link {
   padding: 0;
   background: none;
