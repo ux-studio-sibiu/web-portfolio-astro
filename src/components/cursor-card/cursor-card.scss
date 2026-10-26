@@ -1,0 +1,110 @@
+@use "@/styles/breakpoints" as *;
+
+// Placed by a transform on top/left 0 rather than by setting top and left: the
+// card moves with every pointermove, and a transform is the one way to do that
+// without asking for layout each time.
+//
+// Above the section rail, below the side menu — it should never be over an open
+// menu, and it is always over the page.
+.nsc-cursor-card {
+  position: fixed;
+  z-index: 40;
+  top: 0;
+  left: 0;
+  // It follows the pointer, so it must never be under it: a card that takes
+  // events would put itself between the pointer and the thing being hovered and
+  // flicker itself in and out.
+  pointer-events: none;
+  // A cap, not a width. Fixed-position boxes shrink to fit when their width is
+  // auto, so the card is as wide as what is in it and no wider — a two-word
+  // label gets a two-word box. It was a flat `width` before, which was fine
+  // while every card carried a title, a role and a summary, and looked like a
+  // mistake the moment one said only "View project".
+  //
+  // The cap is what a long summary wraps at. Brought in with the type below:
+  // the card is a note at the pointer, not a panel.
+  max-width: min(19rem, 74vw);
+  padding: 0.65rem 0.85rem 0.7rem;
+  background: var(--color-bg);
+  border: 2px solid var(--color-ink);
+  // The same offset shadow the thumbnails and buttons carry, scaled with it.
+  box-shadow: 2px 3px #00000033;
+  animation: cursor-card-in 0.12s ease both;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+
+  // The page face, not the mono. The card was tried in mono — the rest of the
+  // small copy is set that way — and the sans reads better at this size on a
+  // box you glance at.
+  .card-title {
+    margin: 0;
+    font-size: 0.9375rem;
+    // Was 1.15 and -0.02em, which is display setting: right for a heading at
+    // 2rem on the page, wrong on a box that appears for a second and has to be
+    // read at a glance. Tracking back to normal and the line opened.
+    line-height: 1.3;
+    letter-spacing: normal;
+    font-weight: 700;
+  }
+
+  .card-role {
+    margin: 0.25rem 0 0;
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    line-height: 1.4;
+    letter-spacing: 0.14em;
+    word-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  // The part that actually had to be read, and the part that was hardest to.
+  // A step up in size, a line and a half of leading, and air between both the
+  // letters and the words — a card is read in the moment it is under the
+  // pointer, with no second pass. The sans needs that spacing stated; it does
+  // not carry its own the way the mono does.
+  .card-summary {
+    margin: 0.5rem 0 0;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    letter-spacing: 0.012em;
+    word-spacing: 0.08em;
+  }
+
+  // A card that is only a title — "View project", "view details" — is a label
+  // saying what a press does, not a description. Set as one: smaller, and
+  // with just enough room around the words to read as a box.
+  &:has(> .card-title:only-child) {
+    padding: 0.3rem 0.55rem 0.35rem;
+    box-shadow: 2px 2px #00000033;
+
+    .card-title {
+      font-size: 0.8125rem;
+      line-height: 1.2;
+    }
+  }
+
+  // The summaries are written with .highlight-on-scroll in them, which is a
+  // scroll-driven band and has nothing to be driven by in here. The emphasis is
+  // kept as weight instead, and the band is painted out — including the layer
+  // that paints the glyphs themselves, or the phrase would come out blank.
+  .highlight-on-scroll,
+  .highlight-ink {
+    background-image: none;
+    -webkit-text-fill-color: currentColor;
+    color: inherit;
+    animation: none;
+  }
+
+  .highlight-ink {
+    padding: 0;
+    font-weight: 700;
+  }
+}
+
+@keyframes cursor-card-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

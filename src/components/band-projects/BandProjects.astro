@@ -10,8 +10,8 @@ import "./band-projects.scss";
 //
 // The markup is static. Opening a project is the showcase controller's, off
 // `data-open`; the thumbnails sliding in and fading off their pin is the
-// <script> at the foot of this file; the "View project" card at the pointer
-// arrives in lesson 11.
+// <script> at the foot of this file; the "View project" card at the pointer is
+// the cursor card's, off `data-card`.
 //
 // `data-identity-handover` is what makes the cover in the fixed column fade
 // out as THIS band arrives rather than as the first band does — the bands
@@ -40,13 +40,13 @@ const pills = (stack: string) => stack.split(",").map((tech) => tech.trim()).fil
         <div class="entry-visual">
           <div class="visual-sticky">
             {/* The image opens the project too — same target as the View project button, so the obvious click works. */}
-            <button type="button" class:list={["entry-thumb", { "is-empty": !entry.data.thumb }]} aria-label={`Open ${entry.data.title}`} data-open={entry.id}>
+            <button type="button" class:list={["entry-thumb", { "is-empty": !entry.data.thumb }]} aria-label={`Open ${entry.data.title}`} data-open={entry.id} data-card={VIEW_LABEL}>
               {entry.data.thumb && <Thumb src={entry.data.thumb} sizes="(min-width: 1440px) 420px, (min-width: 768px) 30vw, 100vw" class="thumb-img" />}
             </button>
 
             {/* A second frame beside the first, for a project one image does not cover. It opens the same detail — there is nothing else to go to. */}
             {entry.data.thumbAlt && (
-              <button type="button" class="entry-thumb" aria-label={`Open ${entry.data.title}`} data-open={entry.id}>
+              <button type="button" class="entry-thumb" aria-label={`Open ${entry.data.title}`} data-open={entry.id} data-card={VIEW_LABEL}>
                 <Thumb src={entry.data.thumbAlt} sizes="(min-width: 1440px) 320px, (min-width: 768px) 30vw, 100vw" class="thumb-img" />
               </button>
             )}

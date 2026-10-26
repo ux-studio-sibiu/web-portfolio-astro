@@ -1,0 +1,147 @@
+---
+number: 11
+title: Live thumbnails and the cursor card
+summary: The static, fluid (WebGL) and data-viz canvases, each downloaded only when its frame nears the screen; one cursor card for the whole page, declared with data-card; and a CSS-order bug from review, fixed.
+---
+
+The last three blank frames now draw themselves. The film grain sits still and moves when you
+point at it, the fluid-hover frame smears its title under the cursor in WebGL, and the carbon divide's
+globe sits on a field of light static that settles when you look at it. Every thumbnail, frame and
+project name also gets its card at the pointer again: "View project", "view details", or a frame's
+title, role and summary.
+
+With this lesson, everything the old index page did is ported.
+
+## Islands of behaviour, loaded on demand
+
+Astro's answer to "this part needs JavaScript" is an **island**: a framework component (React, Svelte,
+Vue…) with a `client:*` directive that says **when** to load and hydrate it:
+
+| Directive | Loads and runs… |
+|---|---|
+| `client:load` | as soon as the page loads |
+| `client:idle` | once the browser is idle (`requestIdleCallback`) |
+| `client:visible` | once the component scrolls into view (an `IntersectionObserver`) |
+| `client:media="(min-width: 768px)"` | once the media query matches |
+| `client:only="react"` | in the browser only, never rendered on the server |
+
+The directives only apply to **framework** components. Our thumbnails are `.astro` components with a
+`<script>`, so the same idea is written out by hand in `src/scripts/when-visible.ts`, in about ten lines:
+
+```ts
+document.querySelectorAll<HTMLCanvasElement>(".nsc-fluid-thumb canvas").forEach((canvas) => {
+  whenVisible(canvas, async () => {
+    const { fluidThumb } = await import("./fluid-thumb");   // ← fetched only now
+    fluidThumb(canvas);
+  });
+});
+```
+
+- **`whenVisible`** is an `IntersectionObserver` with a 300 px margin, so the frame is drawn just before
+  it arrives. It disconnects after the first sighting.
+- **`await import("./fluid-thumb")`** is a **dynamic import**. Vite splits the module into its own file
+  (`dist/_astro/fluid-thumb.*.js`, 5 kB), and the browser requests it only when that line runs. The
+  small script that waits for visibility is all that loads with the page (about 0.3 kB per thumb).
+
+Checked in the browser: on load, none of the three modules had been requested. After scrolling to the
+Design Tooling row, all three had been, and each canvas had its size.
+
+This is what `client:visible` does for a React component, minus React. The roadmap allowed for an
+optional demo of the same thumb as a real React island, to compare bytes and timing. It's left out
+here, since it would add `@astrojs/react` and React itself to the project just for a comparison. It's
+easy to add later if you want to see it side by side.
+
+### Ported verbatim, again
+
+As in lesson 10, the canvas code is the Next components' `useEffect` bodies, extracted by a script
+and wrapped as plain functions that take the `<canvas>` and return the cleanup:
+`static-thumb.ts`, `fluid-thumb.ts` (the WebGL shader, ~300 lines) and `data-viz-thumb.ts`. Their own
+behaviour (still at rest and moving on hover; moving at rest and still on hover, and stopped off-screen
+by its own `IntersectionObserver`) came across with them unchanged. Checked: the static thumb's
+pixels were identical twice at rest and changed when hovered.
+
+## One cursor card, declared in the markup
+
+In Next every band kept its own `<CursorCard item={hovered}>` in React state, and spread four pointer
+handlers onto every thumbnail, name and frame. Here **one** card serves the page, and what opens it is
+written on the element:
+
+```astro
+<button class="entry-thumb" data-open="advisor" data-card="View project">…</button>
+
+<li class="frame-cell" data-card="Texture Studio" data-card-role="click to view">
+  <template data-card-summary><ProjectCopy entry={item} part="summary" /></template>
+  …
+</li>
+```
+
+- `cursor-card.ts` finds every `[data-card]` once, and gives each the old handlers: enter (mouse only)
+  opens, move re-opens after a scroll closed it, leave and pointerdown close.
+- The **summary** is real markup, with highlights, so it travels in a `<template>` inside the frame and is
+  cloned into the card. That's lesson 07's trick at a small scale.
+- The card is **created on open and removed on close**, so its CSS entrance animation plays each time, as
+  it did when React mounted it. While open, it follows the pointer by writing a `transform`, never by
+  rebuilding.
+- It's appended to `<body>`, which is what the portal was for: the media columns are clipped at the
+  divider, and a card inside one would be cut off.
+
+Checked against the Next build: hovering the same four elements (a project thumbnail, the Texture
+Studio and Instant dance party frames, and the "Sibiu, city center" name) produced **identical card
+markup** on both.
+
+## A bug from review: which column scrolls
+
+Advisor's detail has two columns, the copy and the screens. Only the copy should scroll while the
+screens stay put. FourInOne is the mirror: the copy holds still and the pictures scroll. After lesson 07,
+both columns scrolled in both.
+
+The cause was **CSS order**, which changed when lazy chunks became one stylesheet:
+
+```scss
+// detail-pane.scss: the frame's own padding
+.nsc-detail-pane .detail-frame { padding: 6rem var(--gutter) 4rem; }
+
+// advisor.scss: this body wants none
+.detail-frame:has(.nsc-project-advisor) { padding: 0; }
+```
+
+Both selectors have the **same specificity** (two classes each, since `:has()` counts its argument), so
+the one that comes **later** in the CSS wins.
+
+- **In Next**, `advisor.scss` arrived in the Advisor detail's lazy chunk, loaded after the page's CSS, so it
+  came later and won.
+- **In Astro**, every body is rendered into a template up front, so all the CSS is bundled into **one**
+  file, **in import order**. `DetailPane.astro` imported `DetailBody` (and with it `advisor.scss`) *before*
+  its own `detail-pane.scss`. The pane's padding came later and won.
+
+With 160 px of padding the frame was taller than the columns, and the sticky column had room to travel
+with the page. The fix is one moved line: `DetailPane.astro` imports its stylesheet **first**, with a
+comment saying why. Verified by scrolling the pane 600 px: in Advisor the copy moved 600 and the screens
+0, in FourInOne the reverse, and both frames are now exactly the Next build's height (1,974 and 1,990 px).
+
+The general lesson: **moving from per-route CSS chunks to one bundle can reorder your stylesheets.**
+Two rules of equal specificity that only worked because of load order will swap. The markup comparison
+can't see it, because the HTML was identical; it only showed up in behaviour.
+
+## Files in this lesson
+
+- `src/scripts/when-visible.ts`: the hand-made `client:visible`
+- `src/components/static-thumb/static-thumb.ts`, `fluid-thumb/fluid-thumb.ts`, `data-viz-thumb/data-viz-thumb.ts`: extracted from the Next components
+- `StaticThumb.astro`, `FluidThumb.astro`, `DataVizThumb.astro`: a `<script>` each that imports the module on visibility
+- `src/components/cursor-card/CursorCard.astro`, `cursor-card.ts`, `cursor-card.scss` (copied)
+- `data-card` / `data-card-role` / `<template data-card-summary>` on: project thumbnails (`BandProjects`), experiment thumbnails (`ExperimentEntry`), frame cells (`FrameRow`), project names (`ToolLink`), the Work history jumps (`BandWorkHistory`)
+- `src/components/showcase/Showcase.astro`: renders `<CursorCard />` once
+- `src/components/detail-pane/DetailPane.astro`: the stylesheet imported first (the scrolling fix)
+- `scripts/compare-markup.mjs`: `data-card` and `data-card-role` ignored as port hooks
+- `src/content/lessons/11-live-thumbs.mdx`: this page
+- `ROADMAP.md`: lesson 11 ticked
+
+## Review checklist
+
+- [ ] Network tab on a fresh load: no `static-thumb`, `fluid-thumb` or `data-viz-thumb` script until you scroll near the Design Tooling row.
+- [ ] Static background: grain is still, and moves while hovered or focused.
+- [ ] Fluid hover: the title smears under the cursor and settles when you leave.
+- [ ] The carbon divide: the static moves at rest and stops while you point at the frame.
+- [ ] Cards: "View project" on project thumbnails, "Try it" / "View Demos" / "view project" on experiment frames, title + role + summary on the Tooling and Archive frames, "view details" on names in the copy, "view in projects" on the Work history jumps.
+- [ ] Scroll with a card up: it closes; move the mouse: it comes back.
+- [ ] Open Accounting platform: only the copy scrolls. Open White-label product: only the pictures scroll.

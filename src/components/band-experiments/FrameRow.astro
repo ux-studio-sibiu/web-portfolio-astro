@@ -1,5 +1,7 @@
 ---
 import type { Project } from "@/lib/projects";
+import { hasCopy } from "@/lib/projects";
+import ProjectCopy from "@/components/project-copy/ProjectCopy.astro";
 import Thumb from "@/components/thumb/Thumb.astro";
 import ThumbNode from "@/components/thumb/ThumbNode.astro";
 
@@ -34,8 +36,10 @@ const pills = (list: string) => list.split(",").map((tech) => tech.trim()).filte
   <li class={`scroll-entry-secondary ${className}`}>
     <div class="entry-visual">
       <ul class="frame-grid" style={rows ? { "grid-template-rows": `repeat(${rows}, var(--tool-row))`, "--tool-rows": rows } : undefined}>
+        {/* The card at the pointer says what each frame is: these frames have no caption, the row has one block of copy for the whole set. The summary rides along inside, in a <template>, for the card to clone. */}
         {items.map((item) => (
-          <li class:list={["frame-cell", item.data.className]} data-preload={item.data.href}>
+          <li class:list={["frame-cell", item.data.className]} data-preload={item.data.href} data-card={item.data.title} data-card-role={item.data.role}>
+            {hasCopy(item, "summary") && <template data-card-summary><ProjectCopy entry={item} part="summary" /></template>}
             <button type="button" class="entry-thumb" aria-label={`Open ${item.data.title}`} data-open={item.id}>
               {item.data.thumbNode
                 ? <ThumbNode name={item.data.thumbNode} />

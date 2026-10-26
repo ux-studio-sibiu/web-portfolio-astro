@@ -9,14 +9,17 @@ import { getProjects } from "@/lib/projects";
 // Falls back to plain text when no entry carries that slug, so a project can
 // be dropped (or set to draft) without this going looking for it.
 //
-// Nothing listens to `data-open` yet: lesson 07. The "view details" card at
-// the pointer is lesson 11.
+// `data-open` is the showcase controller's; `data-card` is the cursor card's.
 interface Props {
   slug: string;
 }
 
 const { slug } = Astro.props;
+
+// What a project's name in the copy promises, on the card at the pointer. Just
+// the label: the sentence around the name is already the description.
+const LINK_LABEL = "view details";
 const exists = (await getProjects()).some((entry) => entry.id === slug);
 ---
 
-{exists ? <button type="button" class="inline-link" data-open={slug}><slot /></button> : <slot />}
+{exists ? <button type="button" class="inline-link" data-open={slug} data-card={LINK_LABEL}><slot /></button> : <slot />}

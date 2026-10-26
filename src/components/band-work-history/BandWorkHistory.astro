@@ -25,8 +25,12 @@ import "./band-work-history.scss";
 // and heading content, and a paragraph is neither.
 //
 // The two "jump" phrases are buttons carrying `data-scroll-to` with the slug of
-// a project further down the page. Nothing listens yet: the scroll lands in
-// lesson 06, and the "view in projects" card under the pointer in lesson 11.
+// a project further down the page (scrolled to by the showcase controller),
+// and `data-card` for the card under the pointer — the same device the
+// thumbnails use to say "there is something behind this".
+
+// What the jump phrase's card says.
+const JUMP_LABEL = "view in projects";
 ---
 
 <section class="band nsc-band-work-history">
@@ -61,7 +65,7 @@ import "./band-work-history.scss";
                 {/* The product this post is mostly about is also a project further down the page, so the phrase that names it is the way there. A button, not an anchor: it scrolls the pane, which is not a navigation to a URL of its own. */}
                 <li>
                   <Highlight>long-standing</Highlight> contribution for{" "}
-                  <button type="button" class="inline-link" data-scroll-to="advisor">accounting SaaS</button>{" "}
+                  <button type="button" class="inline-link" data-scroll-to="advisor" data-card={JUMP_LABEL}>accounting SaaS</button>{" "}
                   for nordic markets on product development and maintenance, knowledge sharing and documentation
                 </li>
 
@@ -105,7 +109,7 @@ import "./band-work-history.scss";
                 <li>improved responsiveness of products following mobile-first best practices</li>
                 <li>
                   <Highlight>proposed and implemented</Highlight> the design of a{" "}
-                  <button type="button" class="inline-link" data-scroll-to="four-in-one">white-label product</button>{" "}. Concept allows for convenient per-customer branding
+                  <button type="button" class="inline-link" data-scroll-to="four-in-one" data-card={JUMP_LABEL}>white-label product</button>{" "}. Concept allows for convenient per-customer branding
                 </li>
 
                 <li>modernized the same product by <Highlight>migrating to SPA</Highlight> using ajax libraries of the time (sammy.js)</li>

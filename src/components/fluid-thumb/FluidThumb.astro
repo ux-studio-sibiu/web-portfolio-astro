@@ -1,10 +1,25 @@
 ---
 import "./fluid-thumb.scss";
 
-// The fluid hover effect, running in WebGL. Served blank: the shader and its
-// loop arrive in lesson 11, loaded only once the frame is on screen.
+// The fluid hover effect, running in WebGL (fluid-thumb.ts): one clean frame
+// at rest, the smear while it is pointed at. Served blank, and drawn once the
+// frame nears the screen.
 ---
 
 <span class="nsc-fluid-thumb">
   <canvas aria-hidden="true"></canvas>
 </span>
+
+<script>
+  // The drawing starts only once the frame is about to be seen, and the module
+  // that draws it is only downloaded then: a dynamic import() inside
+  // whenVisible, the hand-made equivalent of client:visible (lesson 11).
+  import { whenVisible } from "@/scripts/when-visible";
+
+  document.querySelectorAll<HTMLCanvasElement>(".nsc-fluid-thumb canvas").forEach((canvas) => {
+    whenVisible(canvas, async () => {
+      const { fluidThumb } = await import("./fluid-thumb");
+      fluidThumb(canvas);
+    });
+  });
+</script>

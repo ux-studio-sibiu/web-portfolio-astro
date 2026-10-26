@@ -8,7 +8,7 @@ Like `data-viz`, the lessons don't build separate demos: they all grow **one pro
 Each lesson also adds its own lesson page (`/lessons/NN-...`) that explains the concepts, compares them
 with what the Next.js version did, and ends with "Files in this lesson" and a "Review checklist".
 
-> Status: lessons 01–10 done. Decisions are settled in section 6.
+> Status: lessons 01–11 done. Decisions are settled in section 6.
 
 ---
 
@@ -196,7 +196,7 @@ what the lesson page explains (always with a **Next.js → Astro** comparison ta
 | 08 | History ✓ | `pane-history.ts`: opening pushes a history entry, back closes the pane (`popstate` is the only thing that closes it), close returns in one step via the Navigation API with a `history.go(-n)` fallback; both paths tested with a same-origin iframe | `pushState` / `popstate`, the Navigation API, why iframes share the page's history (G7), URL as state |
 | 09 | Scroll sequence ✓ | `scroll-sequence.ts` (identity fade, section ownership, outro, pinned highlight sweep, `ResizeObserver` re-measuring) and `forward-wheel.ts`. Plain DOM measurement, no GSAP. Sampled at 50 scroll positions against the Next build: identical | Custom scroller (G6), measure-then-write, passive listeners, `ResizeObserver`, why fractions of the pane beat fixed pixels |
 | 10 | GSAP ✓ | Band thumb slides (GSAP bodies extracted verbatim from the Next components), elastic line, tile reveal, run line, `ResizeObserver` → coalesced `ScrollTrigger.refresh()`, `src/scripts/gsap.ts` shared chunk. 29 scroll positions × 19 values identical to the Next build | npm libs in client scripts, `ScrollTrigger` with a custom `scroller`, `gsap.matchMedia` for breakpoints and reduced motion, cleanup without `useGSAP` |
-| 11 | Live thumbs + cursor card | Static noise, fluid WebGL, data-viz canvas, motion thumb, screen carousel, cursor card. Each loads its module only when visible and pauses off-screen | Dynamic `import()` on visibility as a hand-made `client:visible`. Optional lesson-page section: the same thumb as a **React island** with `client:load` / `client:visible` / `client:idle`, compared on bytes and timing (not part of the product) |
+| 11 | Live thumbs + cursor card ✓ | Static noise, fluid WebGL and data-viz canvases (extracted verbatim, dynamic `import()` via `when-visible.ts`), one `data-card`-driven cursor card (identical markup to Next), and the detail-pane CSS-order fix (pane styles imported first). React-island demo left out | Dynamic `import()` on visibility as a hand-made `client:visible`. Optional lesson-page section: the same thumb as a **React island** with `client:load` / `client:visible` / `client:idle`, compared on bytes and timing (not part of the product) |
 | 12 | Performance + first improvements | Embed preloading ported, live-iframe thumbs → stills, video poster/re-encode, `fetchpriority` on the first thumb, asset audit, viewport fix (G10) | `astro build` + `preview`, reading `dist/`, bundle visualizer, Lighthouse/WebPageTest, before/after against the Next build |
 | 13 | Deep links | `?project=slug` opens a project on load (still closing in one step, G7), `/work/[slug]/` pages | `getStaticPaths` with props, reading the URL on load, keeping history consistent when the page starts with a project open |
 | 14 | Ship it | OG/meta per page, sitemap (lessons excluded), robots, 404, Vercel deploy, README | Integrations, `Astro.site` / canonical URLs, deploying static output |

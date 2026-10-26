@@ -5,6 +5,7 @@ import ElasticLine from "@/components/elastic-line/ElasticLine.astro";
 import DetailPane from "@/components/detail-pane/DetailPane.astro";
 import SectionRail from "@/components/section-rail/SectionRail.astro";
 import SideMenu from "@/components/side-menu/SideMenu.astro";
+import CursorCard from "@/components/cursor-card/CursorCard.astro";
 import "./showcase.scss";
 
 // The shell. It owns the frame and nothing else: the two-pane track, the three
@@ -56,6 +57,9 @@ const { projects } = Astro.props;
 
   {/* Outside the shell entirely, where Next needed a portal to put it. */}
   <SideMenu reveal="fade" />
+
+  {/* The card at the pointer: its stylesheet and script, once for the page. */}
+  <CursorCard />
 </nsc-showcase>
 
 <script>

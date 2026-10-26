@@ -3,11 +3,26 @@ import Thumb from "@/components/thumb/Thumb.astro";
 import globe from "@/assets/projects/data-viz-thumb.png";
 import "./data-viz-thumb.scss";
 
-// The globe still, with a layer of static drawn over it on a canvas. The
-// canvas is blank until lesson 11 brings its drawing loop.
+// The globe still, with a layer of light static drawn under it on a canvas
+// (data-viz-thumb.ts): moving at rest, still while pointed at, stopped off
+// screen. The canvas is blank until the frame nears the screen.
 ---
 
 <span class="nsc-data-viz-thumb">
   <canvas class="static" aria-hidden="true"></canvas>
   <Thumb src={globe} sizes="(min-width: 768px) 30vw, 100vw" class="frame-img" />
 </span>
+
+<script>
+  // The drawing starts only once the frame is about to be seen, and the module
+  // that draws it is only downloaded then: a dynamic import() inside
+  // whenVisible, the hand-made equivalent of client:visible (lesson 11).
+  import { whenVisible } from "@/scripts/when-visible";
+
+  document.querySelectorAll<HTMLCanvasElement>(".nsc-data-viz-thumb canvas").forEach((canvas) => {
+    whenVisible(canvas, async () => {
+      const { dataVizThumb } = await import("./data-viz-thumb");
+      dataVizThumb(canvas);
+    });
+  });
+</script>

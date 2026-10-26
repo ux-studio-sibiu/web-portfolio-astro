@@ -11,13 +11,18 @@ interface Props {
 }
 
 const { entry } = Astro.props;
+
+// What the frame's card at the pointer says, unless the entry sets its own
+// `viewLabel`: the button below says the same, so the two cannot disagree.
+const FRAME_LABEL = "view project";
+
 const pills = (list: string) => list.split(",").map((tech) => tech.trim()).filter(Boolean);
 ---
 
 <li class:list={["scroll-entry-secondary", entry.data.className]} data-preload={entry.data.href}>
   <div class="entry-visual">
     {/* The frame opens the experiment too — same target as the View button, so the obvious click works. With no picture it is a blank frame (.is-empty), the same as a project with none. */}
-    <button type="button" class:list={["entry-thumb", { "is-empty": !(entry.data.thumbNode || entry.data.thumb) }]} aria-label={`Open ${entry.data.title}`} data-open={entry.id}>
+    <button type="button" class:list={["entry-thumb", { "is-empty": !(entry.data.thumbNode || entry.data.thumb) }]} aria-label={`Open ${entry.data.title}`} data-open={entry.id} data-card={entry.data.viewLabel ?? FRAME_LABEL}>
       {entry.data.thumbNode
         ? <ThumbNode name={entry.data.thumbNode} />
         : entry.data.thumb && <Thumb src={entry.data.thumb} sizes="(min-width: 768px) 30vw, 100vw" class="frame-img" />}

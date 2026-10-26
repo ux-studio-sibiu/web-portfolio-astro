@@ -1,0 +1,14 @@
+---
+import "./cursor-card.scss";
+
+// The card at the pointer. Renders nothing itself: the card is created by
+// cursor-card.ts when something with `data-card` is pointed at, and appended
+// to <body>. This component exists so the stylesheet and the script are on the
+// page — rendered once, by the showcase, outside every band and template.
+---
+
+<script>
+  import { cursorCards } from "./cursor-card";
+
+  cursorCards();
+</script>

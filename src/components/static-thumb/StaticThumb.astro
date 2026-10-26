@@ -1,10 +1,25 @@
 ---
 import "./static-thumb.scss";
 
-// Film grain drawn on a canvas. Served blank: the drawing loop arrives in
-// lesson 11, loaded only once the frame is on screen.
+// Film grain drawn on a canvas (static-thumb.ts): a still frame of grain at
+// rest, moving while the frame is pointed at or focused. Served blank, and
+// drawn once the frame nears the screen.
 ---
 
 <span class="nsc-static-thumb">
   <canvas aria-hidden="true"></canvas>
 </span>
+
+<script>
+  // The drawing starts only once the frame is about to be seen, and the module
+  // that draws it is only downloaded then: a dynamic import() inside
+  // whenVisible, the hand-made equivalent of client:visible (lesson 11).
+  import { whenVisible } from "@/scripts/when-visible";
+
+  document.querySelectorAll<HTMLCanvasElement>(".nsc-static-thumb canvas").forEach((canvas) => {
+    whenVisible(canvas, async () => {
+      const { staticThumb } = await import("./static-thumb");
+      staticThumb(canvas);
+    });
+  });
+</script>
