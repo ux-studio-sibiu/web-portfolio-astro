@@ -38,6 +38,14 @@ const ROOTS = [
   // server markup of it to compare with.
 ];
 
+// Differences made ON PURPOSE, from lesson 12 on, when the port stopped being
+// 1:1. Each is applied to the Next HTML before comparing — "this is what the
+// old markup becomes" — so everything else is still held to the old site.
+const INTENDED = [
+  // Lesson 12: Paint's live iframe thumbnail became a still image.
+  [/<iframe [^>]*title="Paint, live"[^>]*><\/iframe>/, '<img class="frame-img" alt="" sizes="(min-width: 768px) 20vw, 50vw">'],
+];
+
 // data-* attributes the port adds as hooks for its own scripts.
 const PORT_HOOKS = ["words", "scroll-to", "open", "card", "card-role"];
 
@@ -56,6 +64,9 @@ const describeImg = (tag) => {
 
 const normalise = (html) =>
   html
+    // From lesson 12 the port wraps each optimised <img> in a <picture> with
+    // an AVIF and a WebP <source>. The <img> inside is what is compared.
+    .replace(/<\/?picture\b[^>]*>|<source\b[^>]*>/g, "")
     .replace(/<img\b[^>]*>/g, describeImg)
     .replace(/<!--[\s\S]*?-->/g, "")
     .replace(/<script[\s\S]*?<\/script>/g, "")
@@ -93,7 +104,7 @@ const outerHtml = (html, tag, cls) => {
   return null;
 };
 
-const next = normalise(readFileSync(nextFile, "utf8"));
+const next = normalise(INTENDED.reduce((html, [from, to]) => html.replace(from, to), readFileSync(nextFile, "utf8")));
 const astro = normalise(readFileSync(astroFile, "utf8"));
 let failures = 0;
 

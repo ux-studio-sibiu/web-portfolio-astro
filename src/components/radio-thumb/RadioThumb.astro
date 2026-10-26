@@ -6,9 +6,14 @@ import "./radio-thumb.scss";
 //
 // Plain <img> from public/, not <Image>: an optimiser takes an animated gif
 // and hands back a still of its first frame.
+//
+// `loading="lazy"` (lesson 12): the Archive is near the foot of the page, and
+// without it these two files — 62 kB together — were downloaded on every visit
+// before anyone scrolled. <Image> adds lazy loading by itself; a plain <img>
+// has to ask for it.
 ---
 
 <span class="nsc-radio-thumb">
-  <img class="screen" src="/radio/static.gif" alt="" aria-hidden="true" />
-  <img class="set" src="/radio/tv.png" alt="" aria-hidden="true" />
+  <img class="screen" src="/radio/static.gif" alt="" aria-hidden="true" loading="lazy" decoding="async" />
+  <img class="set" src="/radio/tv.png" alt="" aria-hidden="true" loading="lazy" decoding="async" />
 </span>

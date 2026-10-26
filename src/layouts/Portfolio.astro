@@ -17,17 +17,21 @@ const {
   description = "Selected work by a frontend developer building fast, functional interfaces.",
 } = Astro.props;
 
-// Copied as-is from the Next layout's `viewport` export. It blocks pinch-zoom
-// (WCAG 1.4.4); lesson 12 fixes it, see G10 in the roadmap.
-const viewport = "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no";
+// No `viewport` passed, so Base's plain one applies. The Next layout exported
+// `maximum-scale=1, user-scalable=no`, which stops visitors pinch-zooming the
+// page (WCAG 1.4.4, Resize Text); dropped in lesson 12. The page has no inputs
+// for iOS to zoom into, which is what that setting is usually there to stop.
 
-// Archivo sets the page, so it is preloaded. The mono is small copy further
-// down and can arrive a moment later.
+// Archivo sets the page, so it is preloaded — but only its LATIN file. The
+// latin-ext one carries the Ț and ă in the Contact name at the foot of the
+// page; it is still fetched, as the name is in the page, just without jumping
+// the queue ahead of what the first screen needs (lesson 12). The mono is
+// small copy and can arrive a moment later.
 ---
 
-<Base title={title} description={description} viewport={viewport}>
+<Base title={title} description={description}>
   <Fragment slot="head">
-    <Font cssVariable="--font-archivo" preload />
+    <Font cssVariable="--font-archivo" preload={[{ subset: "latin" }]} />
     <Font cssVariable="--font-jetbrains-mono" />
   </Fragment>
   <slot />

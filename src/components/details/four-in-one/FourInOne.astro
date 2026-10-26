@@ -1,9 +1,16 @@
 ---
+import { getImage } from "astro:assets";
 import Thumb from "@/components/thumb/Thumb.astro";
 import concept from "@/assets/projects/4in1-3.jpg";
 import foocall from "@/assets/projects/4in1-1.jpg";
 import o2 from "@/assets/projects/4in1-2.jpg";
+import posterFrame from "@/assets/projects/fnt-poster.jpg";
 import "./four-in-one.scss";
+
+// The video's first-ish frame (0.5s in), captured once and kept as an asset,
+// shown until the video itself can play (lesson 12). getImage() because a
+// `poster` is a URL, not an <img>: same optimiser, the URL handed back.
+const poster = await getImage({ src: posterFrame, width: 940, format: "webp" });
 
 // Detail body for the white-label concept. Two columns like the Advisor body:
 // the copy on the left, the pictures stacked on the right, each column
@@ -57,7 +64,7 @@ import "./four-in-one.scss";
 
       {/* Last, after the stills. Muted and looping, so it reads as a moving picture rather than something to be played. Served from public/: neither Astro nor Next processes video, so an import would only buy a hashed filename. Inside the <template>, it does not even fetch its metadata until the project is opened. */}
       <figure class="shot">
-        <video src="/video/fnt.mp4" autoplay muted loop playsinline preload="metadata"></video>
+        <video src="/video/fnt.mp4" poster={poster.src} autoplay muted loop playsinline preload="metadata"></video>
         <figcaption>FooCall — flow in motion</figcaption>
       </figure>
     </div>

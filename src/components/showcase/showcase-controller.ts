@@ -5,6 +5,7 @@ import { forwardWheel } from "./forward-wheel";
 import { ScrollTrigger } from "@/scripts/gsap";
 import { elasticLine } from "@/components/elastic-line/elastic-line";
 import { playTileReveal } from "@/components/tile-reveal/tile-reveal";
+import { preloadEmbedsIn } from "@/scripts/embed-preload";
 
 // <nsc-showcase>: the behaviour of the shell, as a custom element wrapped
 // around its markup. It is where ShowcaseLinear's React state went — not into
@@ -35,6 +36,8 @@ import { playTileReveal } from "@/components/tile-reveal/tile-reveal";
 //   motion     (lesson 10) the divider's pull towards the cursor, the tile cover
 //              over the pane as it opens, and ScrollTrigger refreshed whenever
 //              the content changes height. The bands start their own GSAP.
+//   preload    (lesson 12) each embed's site warmed as its entry comes into
+//              view (src/scripts/embed-preload.ts)
 
 type State = {
   // A project is showing. Driven by open/close.
@@ -129,11 +132,16 @@ class Showcase extends HTMLElement {
     const stopWheel = forwardWheel(el.scroller, [column, el.railButton]);
     // The divider watches the whole index pane for the cursor, not just itself.
     const stopLine = elasticLine(this.querySelector<SVGSVGElement>("svg.nsc-elastic-line")!, el.indexPane);
+    // Warms each embed's site as its entry scrolls into view, so the connection
+    // is open — and usually the document cached — by the time the pane opens.
+    // Entries opt in with `data-preload` (the bands put the `href` there).
+    const stopPreload = preloadEmbedsIn(el.scroller);
     // All of it cleans up with everything else when the element leaves the page.
     signal.addEventListener("abort", () => {
       stopSequence();
       stopWheel();
       stopLine();
+      stopPreload();
       this.#stopReveal?.();
     });
 

@@ -1,0 +1,168 @@
+---
+number: 12
+title: Performance and first improvements
+summary: Measured against the Next build first, then fixed what the numbers pointed at. The first load drops from 398 kB to about 191 kB and JavaScript from 198 kB to 52 kB, the live Paint iframe becomes a still, thumbnails ship as AVIF, and pinch-zoom works again.
+---
+
+Up to lesson 11 the rule was 1:1, so the port did what the old site did, including its waste. This
+lesson **measures first**, then changes what the numbers point at. It's also the first lesson where the
+markup is allowed to differ from Next, on purpose.
+
+## Measure first: `scripts/measure-load.js`
+
+A snippet to paste into the DevTools console on a freshly loaded page. It lists every resource the
+page has loaded, **gzips** the text ones itself (HTML, JS, CSS) with the browser's `CompressionStream`,
+so the result doesn't depend on whether the local server compresses, and adds them up by kind. Both
+builds were measured at 1280 × 800, before any scrolling.
+
+| Loaded before any interaction | Next | Astro before this lesson | Astro now |
+|---|---|---|---|
+| HTML (gzip) | 22 kB | 22 kB | 24 kB |
+| JavaScript (gzip) | **198 kB** in 7 files | 51 kB in 11 files | **52 kB** in 11 files |
+| CSS (gzip) | 10 kB | 10 kB | 10 kB |
+| Fonts | 106 kB | 106 kB | 106 kB |
+| Images | 62 kB | 62 kB | **0.2 kB** |
+| Live iframes | **1** (all of Paint) | 1 | **0** |
+| **Total** | **398 kB** | **250 kB** | **≈ 191 kB** |
+
+- **JavaScript: −74%.** That's the result of lessons 06–11, not this one: no React, ReactDOM or Next
+  runtime, and GSAP (the biggest piece) loaded once. The canvas thumbnails' code isn't in this number at
+  all, because it loads only when they come into view (lesson 11).
+- The **iframe** row is the one that matters most, and the table can't even show it: Paint's live thumbnail
+  booted a whole second page (its HTML, CSS and scripts) on every visit, which this page's resource list
+  never sees.
+
+LCP (Largest Contentful Paint) isn't in the table on purpose. On localhost, inside an embedded browser
+pane, paint timings are noise; lesson 14 measures them on the real deploy.
+
+## What changed
+
+### 1. Paint's live iframe → a still
+
+The Archive showed Paint as a live iframe, the experiment running at a quarter scale. It's now a
+**picture of it**: `src/assets/projects/paint.png`. The entry just gained a `thumb:` line in
+`paint.mdx`, and `FrameRow` already preferred a thumbnail over an iframe.
+
+The first still was captured with **Chrome headless** at exactly the size the frame showed the page
+(575 × 427 CSS px, at 2×), which is handy for any page you want a picture of:
+
+```bash
+chrome --headless=new --window-size=575,427 --force-device-scale-factor=2 \
+       --virtual-time-budget=8000 --screenshot=paint.png https://…/paint-concept/
+```
+
+`--virtual-time-budget` lets the page's own scripts run for a while before the shot. That capture was an
+almost empty canvas, though, so it was replaced in review with a screenshot that has a drawing in it.
+The source was optimised with sharp into a **palette PNG** (flat colours, so 256 of them lose nothing):
+141 kB → 35 kB on disk, and about **8 kB** as the AVIF the frame downloads.
+
+### 2. AVIF, through `<Picture>`
+
+`next/image` served **AVIF or WebP per request** (its server read the browser's `Accept` header).
+The static port served WebP only. A quick check with sharp, the encoder Astro uses, at 640 px:
+
+```
+WebP 534 kB  →  AVIF 276 kB   (48% smaller, across the 15 thumbnails)
+```
+
+`Thumb.astro` now renders `<Picture formats={["avif", "webp"]}>`. The browser takes the first `<source>`
+it can decode, and the `<img>` keeps a JPEG fallback. Two details:
+
+- **`pictureAttributes={{ style: "display: contents" }}`**: the `<picture>` generates **no box**, so the
+  `<img>` lays out exactly as when it stood alone, and every rule written against it (its class, size,
+  `object-fit`) still applies. The markup comparison treats `<picture>`/`<source>` as wrapping and
+  compares the `<img>`.
+- Loading all 13 index images at once: **107 kB, all AVIF**, against **92 kB** for the 12 that `next/image`
+  served. That's on par now, where WebP-only would have been about twice that. Next's default AVIF
+  quality is a little lower, and `quality` on `<Picture>` could match it if those 15 kB matter.
+
+The Advisor carousel stays WebP: its script swaps one `<img src>`, and AVIF alone would leave older
+iPhones (iOS 15, still in the old browserslist) with nothing.
+
+### 3. Lazy TV
+
+The Archive TV is a plain `<img>` pair from `public/` (an optimiser would freeze its GIF). Plain `<img>`
+is **eager** unless told otherwise, and `<Image>` adds `loading="lazy"` for you, which is why only these
+two were missed. Adding `loading="lazy" decoding="async"` removes **62 kB** from every first visit. The
+same waste was in the Next site.
+
+### 4. Embed preloading, ported
+
+`useEmbedPreload` from the Next app became `src/scripts/embed-preload.ts`. As each entry scrolls into
+view, it opens the connection to the project's site (`dns-prefetch` + `preconnect`) and prefetches its
+document, so the detail pane's iframe starts faster. It skips everything on a `saveData` connection. The
+controller starts it on `.pane-scroll`, reading the `data-preload` attributes the bands have carried
+since lesson 05.
+
+### 5. A poster for the video
+
+FourInOne's video now has a `poster`: a frame 0.5 s in, captured with Chrome headless (there's no ffmpeg
+on this machine, so no re-encode yet). It's kept as `src/assets/projects/fnt-poster.jpg` and served through
+`getImage()` as a **33 kB WebP**, the same optimiser as `<Image>`, returning a URL, which is what `poster`
+needs. It's inside the detail's template, so it loads only when the project opens.
+
+### 6. Fonts: preload only what the first screen needs
+
+```astro
+<Font cssVariable="--font-archivo" preload={[{ subset: "latin" }]} />
+```
+
+The preload was fetching both Archivo files, latin and latin-ext. Latin-ext only carries the Ț and ă in
+the Contact name at the foot of the page. It's still downloaded (the name is in the page), but no longer
+**ahead of** what the first screen needs. Bytes don't change; order does.
+
+### 7. Pinch-zoom (G10)
+
+The Next layout exported `maximum-scale=1, user-scalable=no`, which blocks zoom: an accessibility
+failure (WCAG 1.4.4, Resize Text), usually there to stop iOS zooming into small form fields. The page has
+none. The viewport is now the plain `width=device-width, initial-scale=1`, and the `viewport` prop on
+`Base` went with it.
+
+## Leaving 1:1, deliberately
+
+`compare-markup.mjs` holds the port to the old markup, and a still where an iframe was is a real
+difference. So the script gained an **`INTENDED`** list: replacements applied to the Next HTML before
+comparing ("this is what the old markup becomes"). Paint's iframe is the first entry. Everything else is
+still held to the old site, and all ten roots pass.
+
+## Not done, and why
+
+- **`fetchpriority="high"` on the first thumbnail**: the projects are below the fold (Core technologies
+  fills the first screen), so the largest thing on the first screen is text. Raising an image's priority
+  would compete with the fonts for nothing.
+- **Re-encoding `fnt.mp4`** (2 MB): it needs ffmpeg. It only loads when FourInOne opens.
+- **The blur placeholders' inline style** (lesson 05): about 21 kB of the 116 kB of uncompressed HTML,
+  nearly a fifth, counting the detail pictures in the templates and Paint's new still. A dominant colour
+  would be far smaller, but it's a visible change, so it's a decision for you rather than a performance fix.
+
+## A testing note: lazy images in an emulated viewport
+
+Scrolling the probe through the page loaded **no thumbnails at all**, on the Next build too. Lazy images
+in this embedded browser, under viewport emulation, never decided they were near the screen. So the
+image comparison forced `loading = "eager"` on every thumbnail on both builds and measured what arrived.
+Always check that a surprising number happens on the reference too before calling it a bug.
+
+## Files in this lesson
+
+- `scripts/measure-load.js`: the DevTools snippet
+- `src/assets/projects/paint.png` + `src/content/projects/paint.mdx` (`thumb:`): the still
+- `src/components/thumb/Thumb.astro`: `<Picture>`, AVIF + WebP, `display: contents`
+- `src/components/radio-thumb/RadioThumb.astro`: `loading="lazy"`
+- `src/scripts/embed-preload.ts` + `src/components/showcase/showcase-controller.ts`: embed preloading
+- `src/assets/projects/fnt-poster.jpg` + `src/components/details/four-in-one/FourInOne.astro`: the poster
+- `src/layouts/Portfolio.astro`: latin-only preload, plain viewport
+- `src/layouts/Base.astro`: the `viewport` prop removed
+- `scripts/compare-markup.mjs`: `INTENDED` differences; `<picture>`/`<source>` unwrapped
+- `src/content/lessons/12-performance.mdx`: this page
+- `ROADMAP.md`: lesson 12 ticked
+
+## Review checklist
+
+- [ ] Paste `scripts/measure-load.js` into the console on a fresh load of `/` and of the Next site: JS around 52 kB vs 198 kB.
+- [ ] The Archive shows Paint as a picture, and opening it still runs the live page.
+- [ ] Network → Img while scrolling: thumbnails arrive as `.avif`.
+- [ ] Network on first load: no `static.gif` / `tv.png` until you scroll near the Archive.
+- [ ] Scroll past a few projects, then open one: in Network, its site's document was already prefetched.
+- [ ] On a phone, pinch-zoom works.
+- [ ] Open White-label product: the video shows its first frame immediately, before it plays.
+- [ ] `node scripts/compare-markup.mjs` prints SAME ten times.

@@ -6,19 +6,16 @@ interface Props {
   description?: string;
   // Lesson pages are for us, not for search engines.
   noindex?: boolean;
-  // The portfolio passes its own (see Portfolio.astro); everything else gets
-  // the plain one.
-  viewport?: string;
 }
 
-const { title, description, noindex = false, viewport = "width=device-width, initial-scale=1" } = Astro.props;
+const { title, description, noindex = false } = Astro.props;
 ---
 
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content={viewport} />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     {description && <meta name="description" content={description} />}
     {noindex && <meta name="robots" content="noindex" />}
