@@ -1,0 +1,49 @@
+# The whole lesson plan, written and unwritten, for the /lessons index. A
+# lesson that has its page (src/content/lessons/NN-*.mdx) is listed from that
+# page instead and becomes a link; the rest show as "coming up".
+#
+# Kept in step with the lessons table in ROADMAP.md by hand. `id` is the lesson
+# number as text: the file() loader needs an id on every entry.
+
+- id: "1"
+  title: Setup and the lesson layer
+  summary: Astro 7, static output, the Base layout, and these lesson pages as an MDX content collection.
+- id: "2"
+  title: Styles, tokens and fonts
+  summary: The global SCSS, Sass through Vite, self-hosted fonts, and a Portfolio layout.
+- id: "3"
+  title: The shell and the text-only bands
+  summary: The two-pane frame, the fixed identity and four bands as plain Astro components.
+- id: "4"
+  title: Projects as a content collection
+  summary: One MDX file per project, checked by a Zod schema.
+- id: "5"
+  title: Projects and experiments bands, with images
+  summary: Both bands from the collection, astro:assets and a rebuilt blur placeholder.
+- id: "6"
+  title: "First scripts: the menu, the rail and the highlights"
+  summary: Custom elements, bundled scripts, and the data-* handoff from build to browser.
+- id: "7"
+  title: The detail pane
+  summary: Project bodies in <template>s, cloned in on open; one Embed component.
+- id: "8"
+  title: History
+  summary: The back button closes the pane, in one step, even past iframe navigation.
+- id: "9"
+  title: The scroll sequence
+  summary: The identity fade, the rail's section titles and the outro, measured from the DOM.
+- id: "10"
+  title: GSAP
+  summary: Thumbnail slides, the elastic divider, the tile cover and the run line.
+- id: "11"
+  title: Live thumbnails and the cursor card
+  summary: The static, fluid (WebGL) and data-viz canvases, each loaded only when visible and paused off-screen; the card that follows the pointer. Optionally, the same thumb as a React island to compare.
+- id: "12"
+  title: Performance and first improvements
+  summary: Measuring against the Next build, embed preloading, stills instead of live iframe thumbnails, the video, AVIF, and the viewport fix.
+- id: "13"
+  title: Deep links
+  summary: "?project=slug opens a project on load, and /work/[slug]/ pages for sharing, with history still closing in one step."
+- id: "14"
+  title: Ship it
+  summary: Meta and OG per page, sitemap, robots, 404, the Vercel deploy and a README.

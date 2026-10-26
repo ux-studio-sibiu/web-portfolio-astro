@@ -14,8 +14,9 @@ import "./band-experiments.scss";
 // The two group rows' copy lives here, as markup; their position comes from
 // the entries' `order`.
 //
-// Static for now: opening (lesson 07, off `data-open`), the frames sliding in
-// (lesson 10) and the cards at the pointer (lesson 11) come later.
+// The markup is static. Opening is the showcase controller's, off `data-open`;
+// the frames sliding in is the <script> at the foot of this file; the cards at
+// the pointer arrive in lesson 11.
 interface Props {
   items: Project[];
 }
@@ -78,3 +79,10 @@ const rows = items.map((entry, i) => {
     </ul>
   </div>
 </section>
+
+<script>
+  // The frames sliding in from under the right column (experiments-motion.ts).
+  import { experimentsMotion } from "./experiments-motion";
+
+  document.querySelectorAll<HTMLElement>(".nsc-band-experiments").forEach((band) => experimentsMotion(band));
+</script>

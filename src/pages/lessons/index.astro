@@ -2,7 +2,24 @@
 import { getCollection } from "astro:content";
 import Base from "@/layouts/Base.astro";
 
-const lessons = (await getCollection("lessons")).sort((a, b) => a.data.number - b.data.number);
+// Every lesson in the plan, in order. One that has its page is a link, and its
+// title and summary come from that page; one that has not is listed from the
+// plan, as a link that goes nowhere yet.
+const written = await getCollection("lessons");
+const plan = await getCollection("lessonsPlan");
+
+const numbers = [...new Set([...plan.map((entry) => Number(entry.id)), ...written.map((lesson) => lesson.data.number)])].sort((a, b) => a - b);
+
+const rows = numbers.map((number) => {
+  const page = written.find((lesson) => lesson.data.number === number);
+  const planned = plan.find((entry) => Number(entry.id) === number);
+  return {
+    number: String(number).padStart(2, "0"),
+    title: page?.data.title ?? planned?.data.title ?? "",
+    summary: page?.data.summary ?? planned?.data.summary ?? "",
+    href: page ? `/lessons/${page.id}/` : undefined,
+  };
+});
 ---
 
 <Base title="Lessons — porting the portfolio to Astro" noindex>
@@ -12,13 +29,15 @@ const lessons = (await getCollection("lessons")).sort((a, b) => a.data.number - 
     <p class="intro">The Next.js portfolio rebuilt in Astro, one reviewable lesson at a time. The full plan is in <code>ROADMAP.md</code>.</p>
 
     <ol class="list">
-      {lessons.map((lesson) => (
-        <li>
-          <a href={`/lessons/${lesson.id}/`}>
-            <span class="number">{String(lesson.data.number).padStart(2, "0")}</span>
-            <span class="title">{lesson.data.title}</span>
+      {rows.map((row) => (
+        <li class:list={{ "is-upcoming": !row.href }}>
+          {/* An <a> with no href is a placeholder link: not focusable, not clickable, and announced as such with aria-disabled. */}
+          <a href={row.href} aria-disabled={row.href ? undefined : "true"}>
+            <span class="number">{row.number}</span>
+            <span class="title">{row.title}</span>
+            {!row.href && <span class="badge">coming up</span>}
           </a>
-          <p class="summary">{lesson.data.summary}</p>
+          <p class="summary">{row.summary}</p>
         </li>
       ))}
     </ol>
@@ -62,5 +81,24 @@ const lessons = (await getCollection("lessons")).sort((a, b) => a.data.number - 
   .summary {
     margin: 0.25rem 0 0;
     color: #444;
+  }
+
+  .is-upcoming,
+  .is-upcoming .summary {
+    color: #999;
+  }
+
+  .is-upcoming a {
+    cursor: default;
+  }
+
+  .badge {
+    margin-left: 0.5rem;
+    padding: 0.05rem 0.4rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border: 1px solid #ccc;
+    border-radius: 3px;
   }
 </style>

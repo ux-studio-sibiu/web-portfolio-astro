@@ -8,10 +8,10 @@ import "./band-projects.scss";
 
 // The projects band: one entry per project without a `group`, in `order`.
 //
-// Static for now. What the Next version did with React state and GSAP arrives
-// later: opening a project (lesson 07, off `data-open`), the thumbnail sliding
-// in and pinning (lesson 10), and the "View project" card at the pointer
-// (lesson 11).
+// The markup is static. Opening a project is the showcase controller's, off
+// `data-open`; the thumbnails sliding in and fading off their pin is the
+// <script> at the foot of this file; the "View project" card at the pointer
+// arrives in lesson 11.
 //
 // `data-identity-handover` is what makes the cover in the fixed column fade
 // out as THIS band arrives rather than as the first band does — the bands
@@ -78,3 +78,11 @@ const pills = (stack: string) => stack.split(",").map((tech) => tech.trim()).fil
     ))}
   </div>
 </section>
+
+<script>
+  // The thumbnails' arrival and the fade of a pinned one (projects-motion.ts).
+  // Runs once per band on the page; in practice there is one.
+  import { projectsMotion } from "./projects-motion";
+
+  document.querySelectorAll<HTMLElement>(".nsc-band-projects").forEach((band) => projectsMotion(band));
+</script>

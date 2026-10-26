@@ -2,6 +2,9 @@ import { scrollBehavior } from "@/scripts/motion";
 import { PaneHistory } from "./pane-history";
 import { scrollSequence } from "./scroll-sequence";
 import { forwardWheel } from "./forward-wheel";
+import { ScrollTrigger } from "@/scripts/gsap";
+import { elasticLine } from "@/components/elastic-line/elastic-line";
+import { playTileReveal } from "@/components/tile-reveal/tile-reveal";
 
 // <nsc-showcase>: the behaviour of the shell, as a custom element wrapped
 // around its markup. It is where ShowcaseLinear's React state went — not into
@@ -29,6 +32,9 @@ import { forwardWheel } from "./forward-wheel";
 //              reports `section` and `lit`, which render() writes to the rail;
 //              and the wheel forwarded to the pane from the few fixed things
 //              that take pointer events (forward-wheel.ts)
+//   motion     (lesson 10) the divider's pull towards the cursor, the tile cover
+//              over the pane as it opens, and ScrollTrigger refreshed whenever
+//              the content changes height. The bands start their own GSAP.
 
 type State = {
   // A project is showing. Driven by open/close.
@@ -43,12 +49,35 @@ type State = {
   lit: boolean;
 };
 
+// Every scroll-bound animation on the page is declared against its own element
+// — "start when this row's top is 95% down the screen" — which reads as though
+// it cannot care what is above it. It does: ScrollTrigger resolves that into an
+// absolute scrollTop ONCE, when it refreshes, and anything that changes the
+// height of the content above a trigger afterwards — fonts swapping in, a
+// picture decoding, a Work history entry opening — leaves it wrong by exactly
+// that shift. ScrollTrigger refreshes itself on window resize and on load,
+// neither of which covers content changing height inside a scroller of our
+// own; the scroll sequence's ResizeObserver, which watches exactly that, calls
+// this. Coalesced to one per frame: a refresh recomputes every trigger on the
+// page, and a ResizeObserver can fire several times for one reflow.
+let refreshQueued = false;
+const refreshTriggers = () => {
+  if (refreshQueued) return;
+  refreshQueued = true;
+  requestAnimationFrame(() => {
+    refreshQueued = false;
+    ScrollTrigger.refresh();
+  });
+};
+
 const MENU_ICON = `<span class="menu-bars" aria-hidden="true"></span>`;
 const BACK_ICON = `<svg class="back-arrow" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 8h-11" /><path d="M7 3.5 2.5 8 7 12.5" /></svg>`;
 
 class Showcase extends HTMLElement {
   #wiring?: AbortController;
   #history = new PaneHistory();
+  // Takes the tile cover down early, if the pane closes while it is playing.
+  #stopReveal?: () => void;
   #state: State = { isDetail: false, open: null, section: null, lit: false };
 
   // Elements render() writes to, looked up once.
@@ -95,12 +124,17 @@ class Showcase extends HTMLElement {
         this.#state.lit = lit;
         this.#render();
       },
+      onResize: refreshTriggers,
     });
     const stopWheel = forwardWheel(el.scroller, [column, el.railButton]);
-    // Both clean up with everything else when the element leaves the page.
+    // The divider watches the whole index pane for the cursor, not just itself.
+    const stopLine = elasticLine(this.querySelector<SVGSVGElement>("svg.nsc-elastic-line")!, el.indexPane);
+    // All of it cleans up with everything else when the element leaves the page.
     signal.addEventListener("abort", () => {
       stopSequence();
       stopWheel();
+      stopLine();
+      this.#stopReveal?.();
     });
 
     el.railButton.addEventListener("click", () => (this.#state.isDetail ? this.close() : el.menu.open()), { signal });
@@ -162,7 +196,11 @@ class Showcase extends HTMLElement {
     // an iframe that has been navigated inside, a carousel on its fifth shot.
     if (this.#state.open !== slug) this.#el.detailScroll.replaceChildren(template.content.cloneNode(true));
 
-    if (!this.#state.isDetail) this.#history.push(slug);
+    if (!this.#state.isDetail) {
+      this.#history.push(slug);
+      // Covers the frame for the length of the slide, then dissolves off it.
+      this.#stopReveal = playTileReveal(this.#el.detailPane.querySelector(".nsc-tile-reveal")!);
+    }
     this.#state.open = slug;
     this.#state.isDetail = true;
     this.#render();
@@ -179,6 +217,7 @@ class Showcase extends HTMLElement {
   // button, a swipe, or close() above.
   #onPopState = () => {
     if (!this.#state.isDetail) return;
+    this.#stopReveal?.();
     this.#state.isDetail = false;
     this.#render();
   };

@@ -1,5 +1,5 @@
 import { defineCollection } from "astro:content";
-import { glob } from "astro/loaders";
+import { glob, file } from "astro/loaders";
 import { z } from "astro/zod";
 
 // One .mdx file per lesson in src/content/lessons. The file name is the entry
@@ -10,6 +10,18 @@ const lessons = defineCollection({
     number: z.number().int().positive(),
     title: z.string(),
     // One line for the lessons index.
+    summary: z.string(),
+  }),
+});
+
+// The whole plan, written lessons and coming ones, from ONE file. glob() makes
+// an entry per file; file() makes an entry per item in a single YAML or JSON
+// file, keyed by each item's `id`. The /lessons index uses it to show what is
+// still to come.
+const lessonsPlan = defineCollection({
+  loader: file("./src/content/lessons-plan.yaml"),
+  schema: z.object({
+    title: z.string(),
     summary: z.string(),
   }),
 });
@@ -81,4 +93,4 @@ const projects = defineCollection({
     }),
 });
 
-export const collections = { lessons, projects };
+export const collections = { lessons, lessonsPlan, projects };

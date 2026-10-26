@@ -1,0 +1,153 @@
+---
+number: 10
+title: GSAP
+summary: The thumbnails slide in from the divider and fade off their pin, the Tooling and Archive frames arrive one after another, the divider bends toward the cursor, the tile cover dissolves off the pane and the label scrambles. All GSAP code ported verbatim, and checked against the Next build at 29 scroll positions.
+---
+
+The page now moves like the old one. Scroll down and each project thumbnail slides out from under
+the divider and pins, then fades as its entry scrolls on. The Design Tooling and Archive frames arrive
+one after another. Move the mouse across the divider and it bends. Open a project and the pane comes
+in under a glittering grid of squares that dissolves. The label over the name scrambles between
+"Creative / Frontend" and "Developer / Engineer".
+
+## GSAP in an Astro script
+
+```ts
+// src/scripts/gsap.ts
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+gsap.registerPlugin(ScrollTrigger);
+export { gsap, ScrollTrigger };
+```
+
+`npm install gsap` and an import is all it takes. A component's `<script>` is bundled by Vite like any
+module (lesson 06), so npm packages work there exactly as in a React component. Two details:
+
+- **Register once, in one place.** Every module imports `gsap` from `@/scripts/gsap`, so ScrollTrigger is
+  registered exactly once and before anything uses it. In Next, every component repeated
+  `gsap.registerPlugin(useGSAP, ScrollTrigger)` at its top.
+- **One shared chunk.** Four scripts use GSAP (both bands, the divider through the controller, and the
+  controller's refresh). Vite puts GSAP into **one** chunk, `dist/_astro/gsap.*.js`, which they all
+  import. About 113 kB uncompressed, and the browser downloads it once.
+
+GSAP itself went from 3.13 to **3.15**. Its 3.x API is stable and the probes below match, but it's a
+version change worth knowing about.
+
+## `useGSAP` without React
+
+`useGSAP(() => { … }, { scope: root })` did three things: ran the code after mount, scoped selectors to
+the component, and reverted every tween and trigger on unmount. None of that needs React:
+
+| `useGSAP` did | Here |
+|---|---|
+| run after the component mounted | the module script runs after the HTML is parsed (`type="module"` is deferred) |
+| scope selectors to `root.current` | the function is **given** its element: `projectsMotion(band)` |
+| revert everything on unmount | the function **returns** `() => mm.revert()` |
+
+So the band's GSAP code, about 150 lines for projects and 250 for experiments, is **verbatim**. A
+script pulled each body out of the Next component and only replaced the wrapper:
+
+```ts
+// before (Next)                                // after
+useGSAP(() => {                                  export function projectsMotion(el: HTMLElement) {
+  const el = root.current;                         const scroller = el.closest(".pane-scroll");
+  const scroller = el?.closest(".pane-scroll");    if (!scroller) return () => {};
+  if (!el || !scroller) return;                    …identical…
+  …                                                return () => mm.revert();
+  return () => mm.revert();                      }
+}, { scope: root });
+```
+
+Each band's `.astro` file then starts it in its own `<script>`:
+
+```astro
+<script>
+  import { projectsMotion } from "./projects-motion";
+  document.querySelectorAll<HTMLElement>(".nsc-band-projects").forEach((band) => projectsMotion(band));
+</script>
+```
+
+The divider (`elastic-line.ts`) was ported the same way from a `useEffect`. The tile cover and the run
+line held their state in React (`useState` for the squares, a `turn` prop passed down), so those two were
+rewritten by hand as plain functions. The logic and the constants are the same.
+
+## ScrollTrigger in a custom scroller (G6)
+
+The page doesn't scroll; `.pane-scroll` does. Every trigger says so:
+
+```ts
+scrollTrigger: { trigger: entry, scroller, start: () => `top ${…}%`, scrub: true, invalidateOnRefresh: true }
+```
+
+- **`scroller`** is the element whose `scrollTop` drives the trigger. Without it, ScrollTrigger watches the
+  window, which never scrolls here.
+- **`gsap.matchMedia()`** runs the setup only at `(min-width: 768px) and (prefers-reduced-motion: no-preference)`,
+  and reverts it automatically when that stops matching, for example when the window shrinks below
+  tablet or the visitor turns on reduced motion.
+- **Function values** (`start: () => …`, `x: () => travel(thumb)`) are re-evaluated on every refresh, because
+  the columns are fluid.
+
+### Keeping the triggers right: `ScrollTrigger.refresh()`
+
+A trigger's "start when this row's top is 95% down" is turned into an absolute `scrollTop` **once**, at
+refresh. When content above it changes height (a font swapping in, a picture decoding, a Work history
+entry opening), every trigger below is off by exactly that much. ScrollTrigger refreshes on window resize
+and on load, but not when content changes height inside our own scroller.
+
+Lesson 09's `ResizeObserver` already notices exactly that. Its `onResize` hook now calls
+`ScrollTrigger.refresh()`, **coalesced to one per animation frame**, since a refresh recomputes every
+trigger on the page and an observer can fire several times for one reflow.
+
+## Two things learned while testing
+
+1. **No animation frames in a hidden tab.** `requestAnimationFrame` doesn't run in a page that isn't
+   visible (0 frames in 500 ms here), and ScrollTrigger and the GSAP ticker both run on it. Scroll-driven
+   animation can't be checked in a background tab. Here the browser pane was shown for the test.
+2. **The breakpoint matters.** The pane was 761 px wide, under the 768 px where all of this is switched on,
+   so nothing would have moved. The viewport was fixed at 1280 × 800 for both sites.
+
+### The probe
+
+The same script ran on the Next build and on this one. It scrolled `.pane-scroll` from 2,400 px to the
+bottom in steps of 300 and, at each of the **29 positions**, recorded the horizontal offset of all 16
+moving frames (three project thumbnails, the Tooling and Archive frames and the single experiments) plus
+the opacity of the three pinned thumbnails. **Every value matched**, as did the scroll height
+(11,620 px). Some rows (offsets in px, then the three opacities):
+
+```
+3000: 351,368,468,368,… | 1.00,1.00,1.00    ← the first thumbnail on its way in
+4500:   0,  0,468,368,… | 0.33,1.00,1.00    ← the first one fading off its pin
+7200: …,139,21,71,121,317,… | 0.00,0.00,1.00 ← the Tooling frames arriving one after another
+8400:   0,  0,  0,  0,… | 0.00,0.00,1.00    ← everything home
+```
+
+The divider and the cover were checked directly: six pointer moves across the line turned its path from
+`M 250 0 L 250 800` into a 2,853-character curve, and a second and a half after the pointer left it was
+straight again. Opening a project built 150 squares, and two seconds later there were none.
+
+## Files in this lesson
+
+- `package.json`: `gsap` 3.15
+- `src/scripts/gsap.ts`: GSAP + ScrollTrigger, registered once
+- `src/components/band-projects/projects-motion.ts` + the `<script>` in `BandProjects.astro`
+- `src/components/band-experiments/experiments-motion.ts` + the `<script>` in `BandExperiments.astro`
+- `src/components/elastic-line/elastic-line.ts`
+- `src/components/tile-reveal/tile-reveal.ts`
+- `src/components/run-line/run-line.ts` + the `<script>` in `RunLine.astro`
+- `src/components/showcase/showcase-controller.ts`: starts the divider, plays the cover on open, refreshes ScrollTrigger on resize
+- comments in `ElasticLine.astro`, `TileReveal.astro`, `FrameRow.astro` and the band files brought up to date
+- `src/content/lessons/10-gsap.mdx`: this page
+- `ROADMAP.md`: lesson 10 ticked
+- Also in this commit, not GSAP: the `/lessons` index now lists the lessons still to come as placeholder links. The plan is `src/content/lessons-plan.yaml`, a collection read with `file()` (one entry per item in one YAML file, where `glob()` makes one per file), registered in `content.config.ts` and merged with the written lessons in `src/pages/lessons/index.astro`.
+
+## Review checklist
+
+- [ ] From tablet width up, each project thumbnail slides in from the divider, pins, and fades as its entry leaves.
+- [ ] The Tooling frames arrive one by one with the big one last; the Archive frames arrive in reading order.
+- [ ] Moving the mouse quickly across the divider bends it, and it settles straight.
+- [ ] Opening a project shows the glittering cover dissolving off the pane.
+- [ ] The label above the name scrambles one word every three seconds.
+- [ ] With reduced motion on, none of the above moves, and everything is in its resting place.
+- [ ] Open a Work history entry, then scroll on: the thumbnails still arrive at the right moment (the refresh).
+- [ ] Below 768 px there's no sliding, and the thumbnails sit in place.
