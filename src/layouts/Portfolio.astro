@@ -36,14 +36,19 @@ const share = await getImage({ src: image, width: 1200, format: "jpeg", quality:
 // Archivo sets the page, so it is preloaded — but only its LATIN file. The
 // latin-ext one carries the Ț and ă in the Contact name at the foot of the
 // page; it is still fetched, as the name is in the page, just without jumping
-// the queue ahead of what the first screen needs (lesson 12). The mono is
-// small copy and can arrive a moment later.
+// the queue ahead of what the first screen needs (lesson 12).
+//
+// JetBrains Mono's latin file is preloaded too: the label and the whole blurb
+// on the first screen are set in it. Left to be discovered through the CSS, it
+// arrived a round trip later than Archivo, and the first screen visibly
+// changed font after it had painted — which Speed Index counts as still
+// loading.
 ---
 
 <Base title={title} description={description} image={share.src}>
   <Fragment slot="head">
     <Font cssVariable="--font-archivo" preload={[{ subset: "latin" }]} />
-    <Font cssVariable="--font-jetbrains-mono" />
+    <Font cssVariable="--font-jetbrains-mono" preload={[{ subset: "latin" }]} />
   </Fragment>
   <slot />
 </Base>

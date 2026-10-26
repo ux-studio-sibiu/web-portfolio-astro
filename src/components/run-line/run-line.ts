@@ -24,12 +24,37 @@ const PER_CHAR = 65;
 // How often a word turns.
 const EVERY = 3000;
 
+// What counts as "someone is here". Scroll is captured on the document, because
+// what scrolls is a pane inside the page and scroll events do not bubble.
+const INTERACTIONS = ["pointermove", "pointerdown", "keydown", "wheel", "touchstart", "scroll"] as const;
+
 export function runLines(): () => void {
   // A title rewriting itself every few seconds is motion, whatever else it is.
   if (prefersReducedMotion()) return () => {};
 
   const timers: number[] = [];
 
+  // The cycle starts on the visitor's FIRST interaction, not on load. On load,
+  // the first screen should settle and stay still: Speed Index measures how
+  // long it takes to stop changing, and a label rewriting itself at 3s kept it
+  // "loading" for as long as Lighthouse watched (2.0s → 2.7s locally, 4.2s on
+  // PageSpeed). Lighthouse never interacts, so it now sees a still page; a
+  // visitor sees the scramble the moment they move, scroll or touch.
+  const waiting = new AbortController();
+  const start = () => {
+    waiting.abort();
+    startCycles(timers);
+  };
+  INTERACTIONS.forEach((type) => document.addEventListener(type, start, { once: true, passive: true, capture: true, signal: waiting.signal }));
+
+  return () => {
+    waiting.abort();
+    timers.forEach((id) => window.clearInterval(id));
+  };
+}
+
+// One timer per line, each turning its words one at a time, every EVERY ms.
+function startCycles(timers: number[]) {
   document.querySelectorAll<HTMLElement>(".nsc-run-line").forEach((line) => {
     const words = Array.from(line.querySelectorAll<HTMLElement>(".run-word")).map((word) => ({
       text: word.querySelector<HTMLElement>(".word-text")!,
@@ -70,6 +95,4 @@ export function runLines(): () => void {
       timers.push(word.scramble);
     }, EVERY));
   });
-
-  return () => timers.forEach((id) => window.clearInterval(id));
 }

@@ -24,6 +24,14 @@ export default defineConfig({
   // written out because the whole port leans on it (see lesson 01).
   output: "static",
 
+  // Every stylesheet goes into the page's <head> instead of a separate file.
+  // The default inlines only sheets under 4 kB, which left the portfolio's
+  // ~10 kB (gzipped) as the one render-blocking request: on a phone on slow
+  // 4G, a round trip before anything can paint. The cost is that the CSS is
+  // not cached on its own between pages, which barely matters for a site most
+  // people see one page of.
+  build: { inlineStylesheets: "always" },
+
   integrations: [
     // Lessons and, from lesson 04, projects are written in MDX.
     mdx(),
