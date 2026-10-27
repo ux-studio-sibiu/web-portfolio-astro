@@ -156,7 +156,7 @@ a {
     // differ by about a percent. The JS fallback states the same thing the
     // other way round, as a fraction from the TOP — see END in
     // scroll-highlights.tsx, which has to be 1 - this.
-    animation-range: entry 100% cover 40%;
+    animation-range: entry 100% cover 19%;
   }
 
   // Pinned variant, for a phrase that does not travel with the scroll — the
@@ -543,7 +543,14 @@ a {
   display: block;
   width: 100%;
   padding: 0;
-  background: var(--color-wash);
+  // Until what is inside arrives (a picture still downloading, a live frame or a
+  // canvas not started yet) the box shows the light static of the data-viz
+  // thumbnail rather than an empty wash. Drawn by an SVG filter, no image file:
+  // feTurbulence is the noise, the colour matrix squeezes it into the same light
+  // greys (~235–255), and flood → tile → composite → dilate keeps one pixel per
+  // 7px cell and grows it into a square — the same grain size the canvas draws.
+  // stitchTiles, so the 336px tile repeats without a seam.
+  background: var(--color-wash) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='336' height='336'%3E%3Cfilter id='s' x='0' y='0' width='100%25' height='100%25' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' stitchTiles='stitch'/%3E%3CfeColorMatrix values='.2 0 0 0 .86 .2 0 0 0 .86 .2 0 0 0 .86 0 0 0 0 1' result='n'/%3E%3CfeFlood x='3' y='3' width='1' height='1'/%3E%3CfeComposite width='7' height='7'/%3E%3CfeTile/%3E%3CfeComposite in='n' operator='in'/%3E%3CfeMorphology operator='dilate' radius='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)'/%3E%3C/svg%3E") repeat;
   border: 2px solid var(--color-ink);
   cursor: pointer;
   // NOT `overflow: hidden`, which is what this was. It clipped every pseudo-
@@ -574,6 +581,7 @@ a {
   &:hover,
   &:focus-visible {
     background-color: var(--color-ink);
+    background-image: none;
     filter: grayscale(0);
 
     // The hatch lifts with the grey. At rest a thumbnail is a hatched plate;

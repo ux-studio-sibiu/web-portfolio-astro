@@ -1,0 +1,62 @@
+# Razvan Turcanu — Frontend Developer
+
+> Frontend developer based in Sibiu, Romania (EU). Passionate about craft, bridging design and development to build polished, practical interfaces; uses AI tools to move from quick prototypes to finished products. Background in architecture.
+
+This file is a plain-text summary of the portfolio at https://astro-web.studiosibiu.com/ for AI tools and readers that cannot run the page. Everything here is also on the page itself.
+
+## Contact
+
+- Email: arh.turcanu.razvan@gmail.com
+- GitHub: https://github.com/razvanturcanu
+- CV (frontend engineer): https://astro-web.studiosibiu.com/cv/Turcanu-Razvan-Creative-Frontend-Engineer-CV.pdf
+- CV (design engineer): https://astro-web.studiosibiu.com/cv/Turcanu-Razvan-Creative-Design-Engineer-CV.pdf
+
+## Work history
+
+- Visma, Frontend engineer (2018 – present): long-standing contribution to an accounting SaaS for Nordic markets (product development, maintenance, knowledge sharing, documentation). Focused on frontend and UI: refactoring for structure and consistency, enforcing confirmed patterns, discussing design and proposing UX alternatives. Built an in-house ajax library to turn the .NET application into a custom SPA. Led a long-term UI modernization effort (refactoring, UX remodelling, design system adoption), coordinating junior developers with code reviews and estimation. Main contact with the UX team (research, user testing, interviews, UI prototypes). Set up AI development skills, .md instructions and documented patterns.
+- Mi-Pay Sibiu, Frontend developer (2014 – 2018): features and performance for web applications, mobile-first responsiveness; proposed and built the design of a white-label product with per-customer branding; migrated it to a SPA (sammy.js); migrated an internal support tool to Angular 2.
+- University of Architecture, Cluj-Napoca: Bachelor's degree, Architecture and Building Design (2007 – 2013). Cross-disciplinary, concept-to-detail, human-centered design; fast prototyping; power user of complex professional UIs (ArchiCAD, AutoCAD, 3ds Max).
+
+## Core technologies
+
+- HTML, CSS, JS, TypeScript: fundamentals, Core Web Vitals optimization, performance profiling
+- Next.js, React: SSR, SSG, App Router, component libraries, caching and revalidation
+- Data visualization: d3.js, three.js, MapLibre, WebGL
+- GSAP, Motion, Lenis: scroll-driven motion, vector animation, micro-interactions
+- C# .NET, MVC: jQuery, ajax SPA libraries, Kendo UI, SignalR
+- Headless CMS: Sanity, structured content, webhook-driven caching
+- AI development: Claude Code, GitHub Copilot, ChatGPT
+- Workflow: Figma, GitHub, VS Code, Vercel, Photoshop
+
+## Projects
+
+- Accounting platform (Visma, 2018 –) (details: https://astro-web.studiosibiu.com/work/advisor/): accounting SaaS for Nordic markets, 40k active users. Dense, keyboard-friendly UI; Kendo UI styled components and an in-house design system; configurable resizable, draggable dashboards; reversible multi-step wizards; dynamic grids; live updates over SignalR. Stack: .NET, jQuery, Kendo UI, Figma, Snowplow, Cypress, SignalR.
+- casedeschise.ro (2025 – 2026) (details: https://astro-web.studiosibiu.com/work/casedeschise/): website for the annual "open house" architecture event, with the local architects guild OAR. Design, development, CMS and analytics. Stack: React, Next.js, Sanity, webhooks, Google Maps, Resend, Umami, GitHub Actions, Vercel. https://www.casedeschise.ro
+- Photography portfolio (2026) (details: https://astro-web.studiosibiu.com/work/photography/): portfolio concept for a photography studio, minimal and fully editable by the studio. Stack: Next.js, React, TypeScript, Sanity, SCSS, Swiper. https://photography-prototype.vercel.app
+- White-label product (2015) (details: https://astro-web.studiosibiu.com/work/four-in-one/): design concept for a micro-payment product, standardising the product structure across devices and clients. Concept, design and development. Stack: .NET, jQuery, sammy.js, Bootstrap, Photoshop.
+
+## Experiments
+
+- The carbon divide (2026) (details: https://astro-web.studiosibiu.com/work/carbon-divide/): interactive data visualization of country-level CO₂ emissions on a 3D globe. three.js for the globe, d3.js for projections, colour scales and charts, GSAP for transitions, Angular for state and routing. https://data-viz-phi.vercel.app/
+- GSAP, motion, 3D (details: https://astro-web.studiosibiu.com/work/motion/): a collection of motion-based concepts, tools and demos. Stack: GSAP, three.js, WebGL, GLSL. https://experiments-five-bice.vercel.app/motion/
+- Light this scene with your phone (2026) (details: https://astro-web.studiosibiu.com/work/light-study/): a 3D scene lit through the webcam. Stack: three.js, WebGL, GLSL. https://experiments-five-bice.vercel.app/3d-lighting-camera/
+
+## Design tooling
+
+- Randomize Studio: random combinations of typography, colour, layout and effects. https://experiments-five-bice.vercel.app/randomize-studio/intro/
+- Texture Studio: SVG overlays and blending modes over images. https://experiments-five-bice.vercel.app/background-experiments/
+- Fluid hover: a mouse-driven WebGL effect. https://experiments-five-bice.vercel.app/effect/
+- Static background: animated film-grain overlays. https://experiments-five-bice.vercel.app/static-background/
+
+## Archive
+
+- Sibiu, city center (2022): map of the city centre highlighting notable architecture. Vue, Nuxt, MapLibre, Sanity. https://vue-playground-mauve.vercel.app/map?curated&sort=year
+- Kids STEM puzzles (2021): randomly generated puzzles for kids. React, Next.js, Zustand, Sanity. https://clasa-zero.vercel.app/game
+- Paint (2016): Win95 MS Paint rebuilt with CSS. https://experiments-five-bice.vercel.app/paint-concept/
+- Instant dance party (2014): random music and visuals. jQuery, Bootstrap. https://instant-party-chi.vercel.app/index.html?curated
+- Optimize Studio (2016): a collage of UI interactions and effects. .NET MVC, jQuery. https://ux-studio-sibiu.github.io/playground/projects/old-portfolio/index.html
+- My first website (2013): architecture portfolio. jQuery. https://experiments-five-bice.vercel.app/arh-portfolio/
+
+## Optional
+
+- The original version of this site, built with Next.js: https://dev.studiosibiu.com/

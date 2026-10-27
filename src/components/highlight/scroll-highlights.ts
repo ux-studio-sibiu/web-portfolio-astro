@@ -30,10 +30,10 @@ const SELECTOR = ".highlight-on-scroll:not(.pinned):not(.is-selected)";
 // by the time it is 40% of the way up the page.
 //
 // Measured from the TOP, which is why 40% up the page is 0.6 here and
-// `cover 40%` there. The two are the same line on the screen stated from
+// `cover 19%` there. The two are the same line on the screen stated from
 // opposite ends; change one and the other has to follow.
 const START = 1;
-const END = 0.6;
+const END = 0.81;
 
 function scrubHighlights() {
   const live = new Set<HTMLElement>();
