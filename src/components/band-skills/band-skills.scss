@@ -127,7 +127,12 @@ $ghost-count: 5;
   // out by each copy for itself, above.
   @supports (animation-timeline: view()) {
     .can-stack {
-      animation: can-stack-fill linear both;
+      // Longhands on purpose: given the `animation` shorthand, the production
+      // minifier folds the timeline into it, which Chrome drops as invalid.
+      // Same trap as .highlight-on-scroll in globals.scss.
+      animation-name: can-stack-fill;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
       animation-timeline: --can-stack;
       // `cover 50%` is where the stack's middle meets the middle of the
       // viewport; the first copy now lands 20vh of scrolling before that, so it

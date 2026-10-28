@@ -142,8 +142,17 @@ a {
   // Native scroll-driven path. Same sweep, run by the browser off the element's
   // own view() timeline — no JS, no scroll handler, and it stays off the main
   // thread. ScrollHighlights detects this and stands down.
+  //
+  // Longhands, not `animation: highlight-sweep linear both`. Given the shorthand,
+  // the production minifier folds animation-timeline into it — `animation:
+  // linear both highlight-sweep view()` — which Chrome does not parse, so the
+  // whole declaration is dropped and nothing sweeps. Dev is not minified, so it
+  // only broke once deployed. Without every longhand it has no shorthand to
+  // fold into.
   @supports (animation-timeline: view()) {
-    animation: highlight-sweep linear both;
+    animation-name: highlight-sweep;
+    animation-timing-function: linear;
+    animation-fill-mode: both;
     animation-timeline: view();
     // Runs while the phrase travels from the bottom edge up to 40% of the way
     // up the screen, so it is finished by the time you are reading it. The whole
